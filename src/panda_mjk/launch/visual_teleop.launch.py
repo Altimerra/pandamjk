@@ -13,7 +13,7 @@ def generate_launch_description():
     # Path to rviz config
     rviz_config = os.path.join(pkg_dir, 'config', 'teleop.rviz')
 
-    # MoveIt Servo -- consumes the TwistStamped commands interactive_teleop.py
+    # MoveIt Servo -- consumes the TwistStamped commands servo_interactive_marker
     # publishes on /servo_node/delta_twist_cmds and drives the robot.
     servo_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -31,8 +31,8 @@ def generate_launch_description():
         ),
         Node(
             package='panda_mjk',
-            executable='interactive_teleop.py',
-            name='interactive_teleop',
+            executable='servo_interactive_marker',
+            name='servo_interactive_marker',
             output='screen',
             parameters=[{
                 'base_frame': 'link0',

@@ -21,13 +21,13 @@ find_package(joy REQUIRED)
 find_package(moveit_servo REQUIRED)
 find_package(control_msgs REQUIRED)
 find_package(rclcpp_action REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(interactive_markers REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 
 # Install directories
-install(
-  PROGRAMS scripts/interactive_teleop.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
 install(
   DIRECTORY launch config urdf
   DESTINATION share/${PROJECT_NAME}
@@ -52,6 +52,25 @@ ament_target_dependencies(
 
 install(TARGETS
   cartesian_teleop
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# Interactive marker -> MoveIt Servo bridge node
+add_executable(servo_interactive_marker src/servo_interactive_marker.cpp)
+target_compile_features(servo_interactive_marker PUBLIC c_std_99 cxx_std_17)
+ament_target_dependencies(
+  servo_interactive_marker
+  rclcpp
+  geometry_msgs
+  visualization_msgs
+  interactive_markers
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+)
+
+install(TARGETS
+  servo_interactive_marker
   DESTINATION lib/${PROJECT_NAME}
 )
 
