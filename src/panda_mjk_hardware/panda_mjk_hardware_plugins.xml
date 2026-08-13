@@ -1,0 +1,9 @@
+<library path="panda_mjk_hardware">
+  <class name="panda_mjk_hardware/MujocoFrankaSystemInterface"
+         type="panda_mjk_hardware::MujocoFrankaSystemInterface"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Custom MuJoCo hardware interface plugin that exposes Franka-specific GPIO state and command interfaces.
+    </description>
+  </class>
+</library>

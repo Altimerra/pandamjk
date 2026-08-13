@@ -25,11 +25,17 @@ def generate_launch_description():
             default_value="true",
             description="Start the rosbridge websocket server (true/false).",
         ),
+        DeclareLaunchArgument(
+            "controller",
+            default_value="forward_position_controller",
+            description="Which main controller to spawn (e.g., forward_position_controller, joint_impedance_example_controller).",
+        ),
     ]
 
     use_sim = LaunchConfiguration("use_sim")
     robot_ip = LaunchConfiguration("robot_ip")
     start_rosbridge = LaunchConfiguration("start_rosbridge")
+    controller_name = LaunchConfiguration("controller")
 
     # Generate robot_description via Xacro
     robot_description_content = Command([
@@ -80,10 +86,10 @@ def generate_launch_description():
         arguments=["joint_state_broadcaster", "--controller-manager", "/controller_manager"],
     )
 
-    fpc_spawner = Node(
+    main_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["forward_position_controller", "--controller-manager", "/controller_manager"],
+        arguments=[controller_name, "--controller-manager", "/controller_manager"],
     )
 
     # Gripper controller for sim only
@@ -134,7 +140,7 @@ def generate_launch_description():
             mujoco_control_node,
             rsp_node,
             jsb_spawner,
-            fpc_spawner,
+            main_controller_spawner,
             gripper_spawner,
         ]
     )

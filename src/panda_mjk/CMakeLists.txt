@@ -29,8 +29,13 @@ find_package(tf2_geometry_msgs REQUIRED)
 
 # Install directories
 install(
-  DIRECTORY launch config urdf
+  DIRECTORY launch config urdf scripts
   DESTINATION share/${PROJECT_NAME}
+)
+install(PROGRAMS 
+  scripts/collision_behavior_shim.py
+  scripts/gripper_action_shim.py
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 # Custom teleop node

@@ -35,8 +35,8 @@ def generate_launch_description():
             name='servo_interactive_marker',
             output='screen',
             parameters=[{
-                'base_frame': 'link0',
-                'ee_frame': 'link8',
+                'base_frame': 'fer_link0',
+                'ee_frame': 'fer_link8',
                 'kp_linear': 5.0,
                 'kp_angular': 2.0,
                 'use_sim_time': True,

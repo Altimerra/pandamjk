@@ -13,16 +13,16 @@ def main():
     tf_listener = TransformListener(tf_buffer, node)
     pub = node.create_publisher(PoseStamped, '/servo_node/pose_target_cmds', 10)
     
-    node.get_logger().info("Waiting for TF link0 -> link8...")
-    
+    node.get_logger().info("Waiting for TF fer_link0 -> fer_link8...")
+
     target_sent = False
     for i in range(100):
         rclpy.spin_once(node, timeout_sec=0.1)
         try:
-            trans = tf_buffer.lookup_transform('link0', 'link8', rclpy.time.Time())
-            
+            trans = tf_buffer.lookup_transform('fer_link0', 'fer_link8', rclpy.time.Time())
+
             target = PoseStamped()
-            target.header.frame_id = 'link0'
+            target.header.frame_id = 'fer_link0'
             target.header.stamp = node.get_clock().now().to_msg()
             
             # Command it to move 5cm in +X

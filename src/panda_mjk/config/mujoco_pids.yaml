@@ -1,12 +1,31 @@
-# This file is used if mujoco_ros2_control needs to run software PID loops 
-# to convert position/velocity commands to effort commands.
-# Since mujoco_menagerie's panda.xml uses <position> actuators, this might not be fully utilized, 
-# but it's good practice to provide it to avoid warnings.
-mujoco_ros2_control:
+# PID gains mujoco_ros2_control uses to drive the arm's pure-torque MuJoCo
+# actuators (fer_joint1..7, see panda.xml) when a position or velocity
+# ros2_control command interface is active instead of effort. Keyed by MJCF
+# *joint* name ("joint1".."joint7"), not the ros2_control "fer_jointN" names --
+# mujoco_ros2_control looks these up by the underlying MuJoCo joint the
+# actuator drives.
+#
+# The position gains reproduce the original MuJoCo position-actuator PD gains
+# that used to live directly on actuator1..7 in panda.xml (gainprm/biasprm),
+# before they were replaced by these torque actuators so effort/impedance
+# control could command real torque without fighting a second, always-on
+# position actuator on the same joint.
+/**:
   ros__parameters:
-    # Intentionally left blank. Do not define `pids` here.
-    # Since mujoco_menagerie's panda.xml uses <position> actuators, 
-    # we want mujoco_ros2_control to pass the position commands directly 
-    # to the MuJoCo actuators, rather than running a software PID loop 
-    # that calculates an effort and incorrectly sets it as the position setpoint.
-    use_sim_time: true
+    pid_gains:
+      position:
+        joint1: {p: 4500.0, i: 0.0, d: 450.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        joint2: {p: 4500.0, i: 0.0, d: 450.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        joint3: {p: 3500.0, i: 0.0, d: 350.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        joint4: {p: 3500.0, i: 0.0, d: 350.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        joint5: {p: 2000.0, i: 0.0, d: 200.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        joint6: {p: 2000.0, i: 0.0, d: 200.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        joint7: {p: 2000.0, i: 0.0, d: 200.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+      velocity:
+        joint1: {p: 50.0, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        joint2: {p: 50.0, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        joint3: {p: 50.0, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        joint4: {p: 50.0, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        joint5: {p: 20.0, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        joint6: {p: 20.0, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        joint7: {p: 20.0, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}

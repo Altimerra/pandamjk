@@ -12,16 +12,40 @@ controller_manager:
     panda_gripper_controller:
       type: position_controllers/GripperActionController
 
+    joint_trajectory_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+    forward_velocity_controller:
+      type: velocity_controllers/JointGroupVelocityController
+
+    forward_effort_controller:
+      type: effort_controllers/JointGroupEffortController
+
+    joint_impedance_example_controller:
+      type: franka_example_controllers/JointImpedanceExampleController
+
+    move_to_start_example_controller:
+      type: franka_example_controllers/MoveToStartExampleController
+
+    gravity_compensation_example_controller:
+      type: franka_example_controllers/GravityCompensationExampleController
+
+    joint_position_example_controller:
+      type: franka_example_controllers/JointPositionExampleController
+
+    joint_velocity_example_controller:
+      type: franka_example_controllers/JointVelocityExampleController
+
 forward_position_controller:
   ros__parameters:
     joints:
-      - joint1
-      - joint2
-      - joint3
-      - joint4
-      - joint5
-      - joint6
-      - joint7
+      - fer_joint1
+      - fer_joint2
+      - fer_joint3
+      - fer_joint4
+      - fer_joint5
+      - fer_joint6
+      - fer_joint7
     interface_name: position
 
 panda_gripper_controller:
@@ -32,3 +56,108 @@ panda_gripper_controller:
     goal_tolerance: 0.01
     stalled_velocity_threshold: 0.001
     stall_timeout: 0.5
+
+joint_trajectory_controller:
+  ros__parameters:
+    joints:
+      - fer_joint1
+      - fer_joint2
+      - fer_joint3
+      - fer_joint4
+      - fer_joint5
+      - fer_joint6
+      - fer_joint7
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+
+forward_velocity_controller:
+  ros__parameters:
+    joints:
+      - fer_joint1
+      - fer_joint2
+      - fer_joint3
+      - fer_joint4
+      - fer_joint5
+      - fer_joint6
+      - fer_joint7
+
+forward_effort_controller:
+  ros__parameters:
+    joints:
+      - fer_joint1
+      - fer_joint2
+      - fer_joint3
+      - fer_joint4
+      - fer_joint5
+      - fer_joint6
+      - fer_joint7
+
+# franka_example_controllers build their state/command interface names as
+# "<arm_prefix><robot_type>_jointN" (see e.g. JointImpedanceExampleController::
+# command_interface_configuration()) -- robot_type is the param below, arm_prefix
+# defaults to "" and is only needed for multi-arm setups. This must be "fer" to
+# match the fer_jointN interfaces exported by the ros2_control block in
+# panda.urdf.xacro.
+joint_impedance_example_controller:
+  ros__parameters:
+    robot_type: fer
+    arm_prefix: ""
+    k_gains:
+      - 24.0
+      - 24.0
+      - 24.0
+      - 24.0
+      - 10.0
+      - 6.0
+      - 2.0
+    d_gains:
+      - 2.0
+      - 2.0
+      - 2.0
+      - 1.0
+      - 1.0
+      - 1.0
+      - 0.5
+
+move_to_start_example_controller:
+  ros__parameters:
+    robot_type: fer
+    arm_prefix: ""
+    k_gains:
+      - 600.0
+      - 600.0
+      - 600.0
+      - 600.0
+      - 250.0
+      - 150.0
+      - 50.0
+    d_gains:
+      - 30.0
+      - 30.0
+      - 30.0
+      - 30.0
+      - 10.0
+      - 10.0
+      - 5.0
+
+gravity_compensation_example_controller:
+  ros__parameters:
+    robot_type: fer
+    arm_prefix: ""
+
+# joint_position_example_controller / joint_velocity_example_controller derive
+# robot_type by parsing the <robot name="..."> attribute out of robot_description
+# at runtime (robot_utils::getRobotNameFromDescription), so no robot_type param
+# exists for them here; "fer" comes from panda.urdf.xacro's <robot name="fer">.
+joint_position_example_controller:
+  ros__parameters:
+    arm_prefix: ""
+    gazebo: true
+
+joint_velocity_example_controller:
+  ros__parameters:
+    arm_prefix: ""
+    gazebo: true

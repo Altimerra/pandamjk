@@ -2,17 +2,17 @@
 // (panda_control.launch.py brings this up on :9090) using roslibjs.
 // No backend of its own; see run_dashboard.py for the static file server.
 
-const JOINT_NAMES = ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint7"];
+const JOINT_NAMES = ["fer_joint1", "fer_joint2", "fer_joint3", "fer_joint4", "fer_joint5", "fer_joint6", "fer_joint7"];
 
 // franka_description's robots/fer/joint_limits.yaml position limits (rad).
 const JOINT_LIMITS = {
-  joint1: [-2.8973, 2.8973],
-  joint2: [-1.7628, 1.7628],
-  joint3: [-2.8973, 2.8973],
-  joint4: [-3.0718, -0.0698],
-  joint5: [-2.8973, 2.8973],
-  joint6: [-0.0175, 3.7525],
-  joint7: [-2.8973, 2.8973],
+  fer_joint1: [-2.8973, 2.8973],
+  fer_joint2: [-1.7628, 1.7628],
+  fer_joint3: [-2.8973, 2.8973],
+  fer_joint4: [-3.0718, -0.0698],
+  fer_joint5: [-2.8973, 2.8973],
+  fer_joint6: [-0.0175, 3.7525],
+  fer_joint7: [-2.8973, 2.8973],
 };
 
 // Standard Franka "ready" pose, widely used as a safe home configuration.
@@ -243,7 +243,7 @@ function publishTwist(linear, angular) {
   if (!twistTopic) return;
   twistTopic.publish(
     new ROSLIB.Message({
-      header: { stamp: { sec: 0, nanosec: 0 }, frame_id: "link0" },
+      header: { stamp: { sec: 0, nanosec: 0 }, frame_id: "fer_link0" },
       twist: { linear, angular },
     })
   );

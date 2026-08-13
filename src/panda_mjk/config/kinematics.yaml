@@ -1,5 +1,5 @@
 # MoveIt kinematics solver config for the "arm" planning group defined in
-# franka_description's fer.srdf.xacro (base_link: link0, tip_link: link8).
+# franka_description's fer.srdf.xacro (base_link: fer_link0, tip_link: fer_link8).
 # Note: this is unrelated to franka_description's own robots/fer/kinematics.yaml,
 # which is Franka's internal DH-parameter format for libfranka's analytic model,
 # not a MoveIt kinematics_solver plugin config.

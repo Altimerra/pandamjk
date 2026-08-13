@@ -11,11 +11,11 @@
 
       # Kinematic properties
       # "arm" matches the group name in franka_description's fer.srdf.xacro
-      # (base_link: link0, tip_link: link8) -- not "panda_arm".
+      # (base_link: fer_link0, tip_link: fer_link8) -- not "panda_arm".
       move_group_name: arm
-      planning_frame: link0
-      ee_frame_name: link8
-      robot_link_command_frame: link0
+      planning_frame: fer_link0
+      ee_frame_name: fer_link8
+      robot_link_command_frame: fer_link0
 
       # Topic Configuration
       cartesian_command_in_topic: ~/delta_twist_cmds

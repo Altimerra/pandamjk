@@ -39,19 +39,16 @@ def generate_launch_description():
     # current identifier for the real Franka Emika Panda (see urdf/panda.urdf.xacro
     # for why this isn't fr3.srdf.xacro).
     #
-    # hand:=false -- franka_description's franka_robot.xacro (used by our
-    # panda.urdf.xacro) doesn't forward no_prefix to its hand attachment, so
-    # the real URDF's hand/finger links come out "fer_"-prefixed even with
-    # no_prefix:=true, while fer.srdf.xacro's hand group does honor it and
-    # comes out bare ("hand", "leftfinger", ...) -- a mismatch that makes
-    # MoveIt fail to load those links. We don't need the "hand" group for
+    # no_prefix:=false (matching panda.urdf.xacro) so link names here agree with
+    # the URDF's "fer_link0".."fer_link8"; MoveIt matches links between URDF and
+    # SRDF by exact name. hand:=false: we don't need the "hand" group for
     # Cartesian arm servoing (the real gripper is driven separately via
     # franka_gripper, not through Servo), so just omit it from the SRDF.
     robot_description_semantic_content = Command([
         PathJoinSubstitution([FindExecutable(name="xacro")]),
         " ",
         PathJoinSubstitution([FindPackageShare("franka_description"), "robots", "fer", "fer.srdf.xacro"]),
-        " hand:=false no_prefix:=true",
+        " hand:=false no_prefix:=false",
     ])
     robot_description_semantic = {
         "robot_description_semantic": ParameterValue(robot_description_semantic_content, value_type=str)

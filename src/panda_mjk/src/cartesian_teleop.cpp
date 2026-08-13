@@ -30,7 +30,7 @@ private:
 
     auto twist_msg = geometry_msgs::msg::TwistStamped();
     twist_msg.header.stamp = this->now();
-    twist_msg.header.frame_id = "link0";
+    twist_msg.header.frame_id = "fer_link0";
 
     // Soft brake (B button - typically index 1)
     if (msg->buttons[1] == 1) {

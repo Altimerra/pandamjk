@@ -52,8 +52,8 @@ class ServoInteractiveMarker : public rclcpp::Node
 public:
   ServoInteractiveMarker() : Node("servo_interactive_marker")
   {
-    base_frame_ = this->declare_parameter<std::string>("base_frame", "link0");
-    ee_frame_ = this->declare_parameter<std::string>("ee_frame", "link8");
+    base_frame_ = this->declare_parameter<std::string>("base_frame", "fer_link0");
+    ee_frame_ = this->declare_parameter<std::string>("ee_frame", "fer_link8");
     kp_linear_ = this->declare_parameter<double>("kp_linear", 5.0);
     kp_angular_ = this->declare_parameter<double>("kp_angular", 2.0);
     max_linear_vel_ = this->declare_parameter<double>("max_linear_vel", 0.2);
