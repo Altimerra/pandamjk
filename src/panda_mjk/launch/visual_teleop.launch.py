@@ -39,6 +39,7 @@ def generate_launch_description():
                 'ee_frame': 'link8',
                 'kp_linear': 5.0,
                 'kp_angular': 2.0,
+                'use_sim_time': True,
             }]
         ),
         servo_launch,

@@ -34,7 +34,7 @@ class VisualTeleop(Node):
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
         # Publisher for MoveIt Servo
-        self.pose_pub = self.create_publisher(PoseStamped, '/servo_node/pose_target_cmds', 10)
+        self.twist_pub = self.create_publisher(TwistStamped, '/servo_node/delta_twist_cmds', 10)
 
         # Interactive Marker Server
         self.server = InteractiveMarkerServer(self, 'teleop_target')
@@ -151,6 +151,7 @@ class VisualTeleop(Node):
             self.target_pose = feedback.pose
             self.is_dragging = True
         elif feedback.event_type == InteractiveMarkerFeedback.MOUSE_UP:
+            # When released, we could snap it back, but let's leave it so it finishes servoing.
             self.is_dragging = False
 
     def control_loop(self):
@@ -160,7 +161,12 @@ class VisualTeleop(Node):
             return
 
         if not self.is_dragging:
-            # Snap back to current pose to prevent drift
+            # If not dragging, smoothly snap the marker back to the real EE to
+            # prevent drift. Only actually push an update to the server when
+            # the pose meaningfully changed -- calling setPose/applyChanges on
+            # every 50Hz tick (even while stationary) rebuilds the marker's
+            # clickable object in RViz constantly, which makes it flicker and
+            # blocks clicking/dragging it.
             pos = (trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z)
             quat = (trans.transform.rotation.x, trans.transform.rotation.y,
                     trans.transform.rotation.z, trans.transform.rotation.w)
@@ -179,13 +185,35 @@ class VisualTeleop(Node):
             self._last_synced_quat = quat
             return
 
-        # Publish Position Command (PoseStamped)
-        pose_msg = PoseStamped()
-        pose_msg.header.stamp = self.get_clock().now().to_msg()
-        pose_msg.header.frame_id = self.base_frame
-        pose_msg.pose = self.target_pose
+        # Calculate error
+        dx = self.target_pose.position.x - trans.transform.translation.x
+        dy = self.target_pose.position.y - trans.transform.translation.y
+        dz = self.target_pose.position.z - trans.transform.translation.z
+
+        q_target = R.from_quat([self.target_pose.orientation.x, self.target_pose.orientation.y, 
+                                self.target_pose.orientation.z, self.target_pose.orientation.w])
+        q_current = R.from_quat([trans.transform.rotation.x, trans.transform.rotation.y, 
+                                 trans.transform.rotation.z, trans.transform.rotation.w])
         
-        self.pose_pub.publish(pose_msg)
+        # Angular error (rotation vector)
+        error_r = (q_target * q_current.inv()).as_rotvec()
+
+        twist = TwistStamped()
+        twist.header.stamp = self.get_clock().now().to_msg()
+        twist.header.frame_id = self.base_frame
+
+        # Proportional control with limits
+        twist.twist.linear.x = np.clip(self.kp_linear * dx, -self.max_linear_vel, self.max_linear_vel)
+        twist.twist.linear.y = np.clip(self.kp_linear * dy, -self.max_linear_vel, self.max_linear_vel)
+        twist.twist.linear.z = np.clip(self.kp_linear * dz, -self.max_linear_vel, self.max_linear_vel)
+
+        twist.twist.angular.x = np.clip(self.kp_angular * error_r[0], -self.max_angular_vel, self.max_angular_vel)
+        twist.twist.angular.y = np.clip(self.kp_angular * error_r[1], -self.max_angular_vel, self.max_angular_vel)
+        twist.twist.angular.z = np.clip(self.kp_angular * error_r[2], -self.max_angular_vel, self.max_angular_vel)
+
+        # Deadband to avoid jitter
+        if np.linalg.norm([dx, dy, dz]) > 0.005 or np.linalg.norm(error_r) > 0.05:
+            self.twist_pub.publish(twist)
 
 def main(args=None):
     rclpy.init(args=args)
