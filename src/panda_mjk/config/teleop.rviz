@@ -60,7 +60,7 @@ Visualization Manager:
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /interactive_teleop/teleop_target/update
+        Value: /teleop_target/update
       Value: true
   Enabled: true
   Global Options:

@@ -37,7 +37,7 @@
       publish_joint_accelerations: false
 
       # Input command scaling
-      command_in_type: "unitless"
+      command_in_type: "speed_units"
       scale:
         linear: 0.4                         # Max linear speed (m/s) for unitless scale=1.0
         rotational: 0.8                     # Max angular speed (rad/s)
