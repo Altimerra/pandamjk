@@ -39,9 +39,9 @@ Installs launch files, config files, and the custom teleop node.
 ### 3. Robot Description (URDF / Xacro)
 
 > [!WARNING]
-> **Joint Naming:** The legacy `panda` model is deprecated in Humble `franka_ros2`. We must use the `fr3` model. To reconcile with DeepMind's `mujoco_menagerie` (which uses un-prefixed names like `joint1`), we will pass `no_prefix:=true` to the `franka_description` macros so both sim and real hardware expect `joint1` through `joint7`.
+> **Joint Naming:** The `panda` arm_id name is deprecated in Humble `franka_description`; the real Franka Emika Panda is now identified as `fer` (Franka Emika Research) there, distinct from `fr3` which is a different, newer physical robot with different kinematics/dynamics. We use `arm_id="fer"` to match our actual hardware. To reconcile with DeepMind's `mujoco_menagerie` (which uses un-prefixed names like `joint1`), we will pass `no_prefix:=true` to the `franka_description` macros so both sim and real hardware expect `joint1` through `joint7`.
 
-#### [NEW] [urdf/fr3.urdf.xacro](file:///Users/harindu/Workbench/Work/PandaMJK/urdf/fr3.urdf.xacro)
+#### [NEW] [urdf/panda.urdf.xacro](file:///Users/harindu/Workbench/Work/PandaMJK/urdf/panda.urdf.xacro)
 *   Includes `franka_description` with `no_prefix:=true`.
 *   `<ros2_control>` block dynamically selects `mujoco_ros2_control/MujocoSystemInterface` (sim) or `franka_hardware/FrankaHardwareInterface` (real) based on `use_sim`.
 
@@ -90,7 +90,7 @@ Subscribes to `/joy` and publishes `geometry_msgs/TwistStamped` to MoveIt Servo 
 
 ### 6. Launch Files
 
-#### [NEW] [launch/fr3_control.launch.py](file:///Users/harindu/Workbench/Work/PandaMJK/launch/fr3_control.launch.py)
+#### [NEW] [launch/panda_control.launch.py](file:///Users/harindu/Workbench/Work/PandaMJK/launch/panda_control.launch.py)
 *   Arguments: `use_sim` (default: `true`), `robot_ip`.
 *   Logic: Launches `mujoco_ros2_control/ros2_control_node` OR standard `controller_manager`, spawns controllers, and launches MoveIt Servo.
 
@@ -104,5 +104,5 @@ Subscribes to `/joy` and publishes `geometry_msgs/TwistStamped` to MoveIt Servo 
 *   Run `colcon build` to ensure CMake and package configurations are correct.
 
 ### Manual Verification
-*   **Simulation Mode:** Run the Docker container, launch `fr3_control.launch.py use_sim:=true` and `teleop.launch.py`. Verify planar control mapping and MoveIt Servo's singularity avoidance in MuJoCo.
+*   **Simulation Mode:** Run the Docker container, launch `panda_control.launch.py use_sim:=true` and `teleop.launch.py`. Verify planar control mapping and MoveIt Servo's singularity avoidance in MuJoCo.
 *   **Real Hardware Mode:** Connect container to Franka network, launch with `use_sim:=false robot_ip:=<ACTUAL_IP>`, verify FCI real-time connection.

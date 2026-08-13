@@ -3,7 +3,7 @@
 <package format="3">
   <name>panda_mjk</name>
   <version>0.0.0</version>
-  <description>Unified ROS 2 package for Franka FR3 sim and real control with Cartesian teleop.</description>
+  <description>Unified ROS 2 package for Franka Emika Panda sim and real control with Cartesian teleop.</description>
   <maintainer email="harindu@example.com">harindu</maintainer>
   <license>Apache-2.0</license>
 

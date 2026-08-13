@@ -28,7 +28,7 @@ def generate_launch_description():
     robot_description_content = Command([
         PathJoinSubstitution([FindExecutable(name="xacro")]),
         " ",
-        PathJoinSubstitution([FindPackageShare("panda_mjk"), "urdf", "fr3.urdf.xacro"]),
+        PathJoinSubstitution([FindPackageShare("panda_mjk"), "urdf", "panda.urdf.xacro"]),
         " ",
         "use_sim:=", use_sim,
         " ",
@@ -41,7 +41,7 @@ def generate_launch_description():
         "config",
         "controllers.yaml",
     ])
-    
+
     mujoco_pids = PathJoinSubstitution([
         FindPackageShare("panda_mjk"),
         "config",
@@ -78,7 +78,7 @@ def generate_launch_description():
         executable="spawner",
         arguments=["forward_position_controller", "--controller-manager", "/controller_manager"],
     )
-    
+
     # Gripper controller for sim only
     gripper_spawner = Node(
         package="controller_manager",
@@ -86,9 +86,9 @@ def generate_launch_description():
         arguments=["panda_gripper_controller", "--controller-manager", "/controller_manager"],
         condition=IfCondition(use_sim),
     )
-    
+
     # For real hardware, you'd typically launch the franka_gripper node here or via another launch file.
-    
+
     # Robot State Publisher
     rsp_node = Node(
         package="robot_state_publisher",

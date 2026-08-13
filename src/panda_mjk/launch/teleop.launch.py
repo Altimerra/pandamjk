@@ -33,7 +33,7 @@ def generate_launch_description():
         "servo_parameters.yaml"
     ])
     
-    # NOTE: To actually run moveit_servo, you need a MoveIt Config package for the FR3.
+    # NOTE: To actually run moveit_servo, you need a MoveIt Config package for the Panda (FER).
     # Assuming one exists or we mock it:
     # servo_node = Node(
     #     package="moveit_servo",

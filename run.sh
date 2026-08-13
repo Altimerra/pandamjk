@@ -5,7 +5,7 @@
 #   ./run.sh                          # simulation, no teleop
 #   ./run.sh --teleop                 # simulation + joystick Cartesian teleop
 #   ./run.sh --visual-teleop          # simulation + RViz interactive-marker teleop
-#   ./run.sh --real --robot-ip 172.16.0.2   # real FR3 hardware
+#   ./run.sh --real --robot-ip 172.16.0.2   # real Panda hardware
 #   ./run.sh --build                  # rebuild the image first
 set -e
 
@@ -47,6 +47,6 @@ if [[ -n "$TELEOP" ]]; then
   docker exec -d "$CONTAINER" bash -c "$ROS_ENV && ros2 launch panda_mjk ${TELEOP}.launch.py"
 fi
 
-echo "Starting fr3_control.launch.py (use_sim:=$USE_SIM robot_ip:=$ROBOT_IP)..."
+echo "Starting panda_control.launch.py (use_sim:=$USE_SIM robot_ip:=$ROBOT_IP)..."
 docker exec -it "$CONTAINER" bash -c \
-  "$ROS_ENV && ros2 launch panda_mjk fr3_control.launch.py use_sim:=$USE_SIM robot_ip:=$ROBOT_IP"
+  "$ROS_ENV && ros2 launch panda_mjk panda_control.launch.py use_sim:=$USE_SIM robot_ip:=$ROBOT_IP"
