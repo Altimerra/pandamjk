@@ -40,6 +40,8 @@ class VisualTeleop(Node):
         self.server = InteractiveMarkerServer(self, 'teleop_target')
         self.target_pose = None
         self.is_dragging = False
+        self._last_synced_pos = None
+        self._last_synced_quat = None
         
         # Wait for initial TF
         self.get_logger().info("Waiting for initial TF...")
@@ -159,13 +161,28 @@ class VisualTeleop(Node):
             return
 
         if not self.is_dragging:
-            # If not dragging, smoothly snap the marker back to the real EE to prevent drift
+            # If not dragging, smoothly snap the marker back to the real EE to
+            # prevent drift. Only actually push an update to the server when
+            # the pose meaningfully changed -- calling setPose/applyChanges on
+            # every 50Hz tick (even while stationary) rebuilds the marker's
+            # clickable object in RViz constantly, which makes it flicker and
+            # blocks clicking/dragging it.
+            pos = (trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z)
+            quat = (trans.transform.rotation.x, trans.transform.rotation.y,
+                    trans.transform.rotation.z, trans.transform.rotation.w)
+            if (self._last_synced_pos is not None
+                    and np.allclose(pos, self._last_synced_pos, atol=1e-4)
+                    and np.allclose(quat, self._last_synced_quat, atol=1e-4)):
+                return
+
             self.target_pose.position.x = trans.transform.translation.x
             self.target_pose.position.y = trans.transform.translation.y
             self.target_pose.position.z = trans.transform.translation.z
             self.target_pose.orientation = trans.transform.rotation
             self.server.setPose("teleop_marker", self.target_pose)
             self.server.applyChanges()
+            self._last_synced_pos = pos
+            self._last_synced_quat = quat
             return
 
         # Calculate error
