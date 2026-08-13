@@ -1,0 +1,15 @@
+# External dependencies fetched via `vcs import src < panda_mjk.repos`
+# (each is its own git repo; pin exact versions in panda_mjk.repos, not here)
+/src/franka_ros2/
+/src/libfranka/
+/src/mujoco_menagerie/
+/src/olv_module_descriptions/
+
+# colcon build artifacts
+build/
+install/
+log/
+
+# Python
+__pycache__/
+*.pyc

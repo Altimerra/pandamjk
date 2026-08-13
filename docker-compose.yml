@@ -1,0 +1,47 @@
+
+services:
+  ros2_mujoco_franka:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ros2_mujoco_container
+    
+    # 1. Mandatory for Real Franka Control & ROS 2 DDS Discovery
+    network_mode: host
+    ipc: host
+    pid: host
+
+    # 2. Privileges for Real-Time Scheduling (1kHz FCI loop) & Hardware Access
+    privileged: true
+    cap_add:
+      - SYS_NICE
+      - NET_ADMIN
+    ulimits:
+      rtprio: 99
+      memlock: -1
+
+    # 3. Environment Variables for Display and MuJoCo
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - QT_X11_NO_MITSHM=1
+      - MUJOCO_GL=glfw
+
+    # 4. Volume Mounts
+    volumes:
+      # X11 Socket
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      # X11 Authority (Optional, for secure X11)
+      - ${HOME}/.Xauthority:/root/.Xauthority:ro
+      # Workspace mounting (override the image's src for dev)
+      - ./src:/ros2_ws/src
+
+    # 5. GPU Passthrough for MuJoCo GLFW rendering (Intel/AMD/NVIDIA DRI render nodes)
+    devices:
+      - /dev/dri:/dev/dri
+
+    stdin_open: true
+    tty: true
+
+    # On the host, run `xhost +local:docker` (or `xhost +local:root`) before
+    # `docker compose up` so the container's root user is permitted to
+    # connect to the host X server via the bind-mounted /tmp/.X11-unix socket.

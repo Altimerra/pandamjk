@@ -1,0 +1,17 @@
+repositories:
+  src/franka_ros2:
+    type: git
+    url: https://github.com/frankaemika/franka_ros2.git
+    version: v2.6.0
+  src/libfranka:
+    type: git
+    url: https://github.com/frankaemika/libfranka.git
+    version: 0.21.3
+  src/mujoco_menagerie:
+    type: git
+    url: https://github.com/google-deepmind/mujoco_menagerie.git
+    version: da76818e269b82289eba39808e2fb91d679d6994
+  src/olv_module_descriptions:
+    type: git
+    url: https://github.com/olive-robotics/olv_module_descriptions.git
+    version: c3444ed7742305ecda813433371ee2113abc7a44

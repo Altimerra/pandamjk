@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="fr3">
+  <!-- Arguments -->
+  <xacro:arg name="use_sim" default="true"/>
+  <xacro:arg name="robot_ip" default="192.168.1.100"/>
+  
+  <!-- Important: We use no_prefix=true so that joint names are "joint1", "joint2", etc.
+       This directly matches the mujoco_menagerie panda.xml model without renaming. -->
+  <xacro:include filename="$(find franka_description)/robots/common/franka_robot.xacro"/>
+  <xacro:franka_robot arm_id="fr3"
+                      joint_limits="${xacro.load_yaml('$(find franka_description)/robots/fr3/joint_limits.yaml')}"
+                      kinematics="${xacro.load_yaml('$(find franka_description)/robots/fr3/kinematics.yaml')}"
+                      inertials="${xacro.load_yaml('$(find franka_description)/robots/fr3/inertials.yaml')}"
+                      dynamics="${xacro.load_yaml('$(find franka_description)/robots/fr3/dynamics.yaml')}"
+                      gazebo="false"
+                      hand="true"
+                      tcp_xyz="0 0 0.1034"
+                      tcp_rpy="0 0 0"
+                      no_prefix="true" />
+
+  <!-- ros2_control definition -->
+  <ros2_control name="FrankaSystem" type="system">
+    <hardware>
+      <xacro:if value="$(arg use_sim)">
+        <!-- MuJoCo Simulator Plugin -->
+        <plugin>mujoco_ros2_control/MujocoSystemInterface</plugin>
+        <!-- The path must point to the MJCF file we copied from mujoco_menagerie -->
+        <param name="mujoco_model">$(find panda_mjk)/urdf/panda.xml</param>
+        <!-- No pids parameter needed if MuJoCo actuators are already position-controlled in MJCF -->
+      </xacro:if>
+
+      <xacro:unless value="$(arg use_sim)">
+        <!-- Real Franka Hardware Plugin -->
+        <plugin>franka_hardware/FrankaHardwareInterface</plugin>
+        <param name="robot_ip">$(arg robot_ip)</param>
+      </xacro:unless>
+    </hardware>
+
+    <!-- Define Interfaces for all 7 arm joints -->
+    <!-- Names must match exactly what's in MJCF (joint1) and what controller expects -->
+    <xacro:macro name="configure_joint" params="joint_name">
+      <joint name="${joint_name}">
+        <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
+        <state_interface name="position">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+      </joint>
+    </xacro:macro>
+
+    <xacro:configure_joint joint_name="joint1"/>
+    <xacro:configure_joint joint_name="joint2"/>
+    <xacro:configure_joint joint_name="joint3"/>
+    <xacro:configure_joint joint_name="joint4"/>
+    <xacro:configure_joint joint_name="joint5"/>
+    <xacro:configure_joint joint_name="joint6"/>
+    <xacro:configure_joint joint_name="joint7"/>
+    
+    <!-- Gripper joint definition (Only finger_joint1 is needed as control interface, finger_joint2 is mimicked/coupled) -->
+    <joint name="finger_joint1">
+      <command_interface name="position" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+    </joint>
+    <!-- On real hardware, franka_hardware exposes nothing for gripper. On sim, mujoco_ros2_control can. -->
+  </ros2_control>
+</robot>
