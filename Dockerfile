@@ -58,6 +58,12 @@ ENV NVIDIA_DRIVER_CAPABILITIES=graphics,utility,compute,display
 WORKDIR /ros2_ws
 COPY ./src /ros2_ws/src
 
+# Some vendored repos (e.g. libfranka -> libfranka-common) use git submodules.
+# `vcs import` does not initialize these, so do it explicitly for any repo
+# under src/ that declares one; harmless no-op otherwise.
+RUN git config --global --add safe.directory '*' && \
+    find /ros2_ws/src -maxdepth 2 -name ".gitmodules" -execdir git submodule update --init --recursive \;
+
 # Initialize rosdep (to catch any missed dependencies from src)
 RUN rosdep init || true
 RUN rosdep update
