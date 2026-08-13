@@ -23,6 +23,7 @@ class VisualTeleop(Node):
         self.declare_parameter('max_angular_vel', 0.5)
         self.declare_parameter('position_tolerance', 0.005)
         self.declare_parameter('orientation_tolerance', 0.05)
+        self.declare_parameter('seek_timeout', 5.0)
 
         self.base_frame = self.get_parameter('base_frame').value
         self.ee_frame = self.get_parameter('ee_frame').value
@@ -32,6 +33,7 @@ class VisualTeleop(Node):
         self.max_angular_vel = self.get_parameter('max_angular_vel').value
         self.position_tolerance = self.get_parameter('position_tolerance').value
         self.orientation_tolerance = self.get_parameter('orientation_tolerance').value
+        self.seek_timeout = self.get_parameter('seek_timeout').value
 
         # TF2 Setup
         self.tf_buffer = tf2_ros.Buffer()
@@ -48,9 +50,13 @@ class VisualTeleop(Node):
         self.server = InteractiveMarkerServer(self, 'teleop_target')
         self.target_pose = None
         self.is_dragging = False
-        # Set on release; cleared once the EE reaches the released target.
-        # While True, control_loop keeps commanding the arm toward it.
+        # Set on release; cleared once the EE reaches the released target
+        # (or seek_timeout elapses -- e.g. the target is out of reach, so the
+        # error would otherwise never shrink and we'd stream max-speed
+        # commands forever). While True, control_loop commands the arm
+        # toward it.
         self.pending_target = False
+        self._seek_start_time = None
         self._last_synced_pos = None
         self._last_synced_quat = None
         
@@ -167,6 +173,7 @@ class VisualTeleop(Node):
             # wherever it was left.
             self.is_dragging = False
             self.pending_target = True
+            self._seek_start_time = self.get_clock().now()
 
     def control_loop(self):
         try:
@@ -207,7 +214,16 @@ class VisualTeleop(Node):
         # A target was released and hasn't been reached yet. Keep streaming a
         # proportional velocity toward the fixed target -- Servo halts if it
         # stops receiving commands (incoming_command_timeout) -- until the EE
-        # gets within tolerance, then stop so the arm holds position.
+        # gets within tolerance, then stop so the arm holds position. Give up
+        # if it takes too long: the target may be outside the arm's
+        # reachable workspace, in which case the error never shrinks and
+        # we'd otherwise stream max-speed commands forever.
+        elapsed = (self.get_clock().now() - self._seek_start_time).nanoseconds / 1e9
+        if elapsed > self.seek_timeout:
+            self.get_logger().warn("Target not reached within seek_timeout; giving up (out of reach?).")
+            self.pending_target = False
+            return
+
         dx = self.target_pose.position.x - trans.transform.translation.x
         dy = self.target_pose.position.y - trans.transform.translation.y
         dz = self.target_pose.position.z - trans.transform.translation.z
