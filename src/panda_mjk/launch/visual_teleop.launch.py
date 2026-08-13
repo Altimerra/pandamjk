@@ -13,8 +13,8 @@ def generate_launch_description():
     # Path to rviz config
     rviz_config = os.path.join(pkg_dir, 'config', 'teleop.rviz')
 
-    # MoveIt Servo -- consumes the TwistStamped commands interactive_teleop.py
-    # publishes on /servo_node/delta_twist_cmds and drives the robot.
+    # MoveIt Servo -- consumes the PoseStamped commands interactive_teleop.py
+    # publishes on /servo_node/pose_target_cmds and drives the robot.
     servo_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution([FindPackageShare("panda_mjk"), "launch", "servo.launch.py"])
@@ -37,8 +37,6 @@ def generate_launch_description():
             parameters=[{
                 'base_frame': 'link0',
                 'ee_frame': 'link8',
-                'kp_linear': 5.0,
-                'kp_angular': 2.0,
                 'use_sim_time': True,
             }]
         ),
