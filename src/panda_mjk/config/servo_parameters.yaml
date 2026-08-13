@@ -3,7 +3,7 @@
     moveit_servo:
       use_gazebo: false                     # We use MuJoCo, not Gazebo
       low_latency_mode: false
-      smoothing_filter_plugin_name: "online_signal_smoothing::ButterworthFilterPlugin"
+      smoothing_filter_plugin_name: ""
       # No separate move_group node is run, so Servo's own PlanningSceneMonitor
       # is the primary one (advertises /get_planning_scene).
       is_primary_planning_scene_monitor: true
@@ -44,14 +44,14 @@
         joint: 0.5                          # Max joint speed (rad/s)
 
       # Singularity handling thresholds
-      lower_singularity_threshold: 17.0     # Decelerate when condition number exceeds this
-      hard_stop_singularity_threshold: 30.0 # Stop when condition number exceeds this
+      lower_singularity_threshold: 100.0     # Decelerate when condition number exceeds this
+      hard_stop_singularity_threshold: 101.0 # Stop when condition number exceeds this
 
       # Safety margins and limits
-      joint_limit_margin: 0.05              # Safety buffer from hard joint limits in radians
+      joint_limit_margin: 0.0              # Safety buffer from hard joint limits in radians
 
       # Collision Checking
-      check_collisions: true
+      check_collisions: false
       collision_check_rate: 10.0            # Rate (Hz) to run planning scene collision checks
       self_collision_proximity_threshold: 0.01  # Distance (m) to start decelerating
       scene_collision_proximity_threshold: 0.02 # Distance (m) to start decelerating
