@@ -69,6 +69,18 @@ RUN rosdep init || true
 RUN rosdep update
 RUN apt-get update && rosdep install -y --from-paths src --ignore-src --rosdistro humble && rm -rf /var/lib/apt/lists/*
 
+# Disable BUILD_TESTING workspace-wide, as a colcon default so it applies
+# to *any* future `colcon build` too (e.g. a manual rebuild after editing
+# a file), not just this one. Vendored deps (e.g. franka_hardware's gtest
+# binaries) link directly against libfranka.so, which needs
+# libpinocchio_*.so at link time. `ld` doesn't search LD_LIBRARY_PATH
+# (only the runtime loader does), so even with ROS setup.bash sourced,
+# those test binaries fail with "undefined reference" to pinocchio
+# symbols. We don't run any vendored package's own test suite here, so
+# skip compiling them entirely rather than patching link paths.
+RUN mkdir -p /root/.colcon && \
+    printf 'build:\n  cmake-args:\n    - -DBUILD_TESTING=OFF\n' > /root/.colcon/defaults.yaml
+
 # Build the workspace
 RUN /bin/bash -c "source /opt/ros/humble/setup.bash && colcon build --symlink-install"
 
