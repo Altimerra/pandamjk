@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import TwistStamped
 from interactive_markers.interactive_marker_server import InteractiveMarkerServer
 from visualization_msgs.msg import InteractiveMarker, InteractiveMarkerControl
 from visualization_msgs.msg import Marker
@@ -17,11 +17,19 @@ class VisualTeleop(Node):
         # Parameters
         self.declare_parameter('base_frame', 'link0')
         self.declare_parameter('ee_frame', 'link8')
+        self.declare_parameter('kp_linear', 5.0)
+        self.declare_parameter('kp_angular', 2.0)
+        self.declare_parameter('max_linear_vel', 0.2)
+        self.declare_parameter('max_angular_vel', 0.5)
         self.declare_parameter('position_tolerance', 0.005)
         self.declare_parameter('orientation_tolerance', 0.05)
 
         self.base_frame = self.get_parameter('base_frame').value
         self.ee_frame = self.get_parameter('ee_frame').value
+        self.kp_linear = self.get_parameter('kp_linear').value
+        self.kp_angular = self.get_parameter('kp_angular').value
+        self.max_linear_vel = self.get_parameter('max_linear_vel').value
+        self.max_angular_vel = self.get_parameter('max_angular_vel').value
         self.position_tolerance = self.get_parameter('position_tolerance').value
         self.orientation_tolerance = self.get_parameter('orientation_tolerance').value
 
@@ -29,11 +37,12 @@ class VisualTeleop(Node):
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
-        # Publisher for MoveIt Servo -- pose_command_in_topic in
-        # servo_parameters.yaml. Servo drives the arm toward whatever pose
-        # is last received here, so it must be republished continuously
-        # (see incoming_command_timeout) until the goal is reached.
-        self.pose_pub = self.create_publisher(PoseStamped, '/servo_node/pose_target_cmds', 10)
+        # Publisher for MoveIt Servo. We stream TwistStamped (not an
+        # absolute pose command) because ros-humble-moveit-servo doesn't
+        # reliably drive the arm from the pose_target_cmds topic -- so a
+        # released target is reached by continuously re-computing a
+        # proportional velocity toward it, same as Servo's normal input.
+        self.twist_pub = self.create_publisher(TwistStamped, '/servo_node/delta_twist_cmds', 10)
 
         # Interactive Marker Server
         self.server = InteractiveMarkerServer(self, 'teleop_target')
@@ -195,10 +204,10 @@ class VisualTeleop(Node):
             self._last_synced_quat = quat
             return
 
-        # A target was released and hasn't been reached yet. Keep commanding
-        # the same target pose every tick -- Servo halts if it stops
-        # receiving commands (incoming_command_timeout) -- until the EE gets
-        # within tolerance, then stop so the arm holds position.
+        # A target was released and hasn't been reached yet. Keep streaming a
+        # proportional velocity toward the fixed target -- Servo halts if it
+        # stops receiving commands (incoming_command_timeout) -- until the EE
+        # gets within tolerance, then stop so the arm holds position.
         dx = self.target_pose.position.x - trans.transform.translation.x
         dy = self.target_pose.position.y - trans.transform.translation.y
         dz = self.target_pose.position.z - trans.transform.translation.z
@@ -215,11 +224,19 @@ class VisualTeleop(Node):
             self.pending_target = False
             return
 
-        pose_msg = PoseStamped()
-        pose_msg.header.stamp = self.get_clock().now().to_msg()
-        pose_msg.header.frame_id = self.base_frame
-        pose_msg.pose = self.target_pose
-        self.pose_pub.publish(pose_msg)
+        twist = TwistStamped()
+        twist.header.stamp = self.get_clock().now().to_msg()
+        twist.header.frame_id = self.base_frame
+
+        twist.twist.linear.x = np.clip(self.kp_linear * dx, -self.max_linear_vel, self.max_linear_vel)
+        twist.twist.linear.y = np.clip(self.kp_linear * dy, -self.max_linear_vel, self.max_linear_vel)
+        twist.twist.linear.z = np.clip(self.kp_linear * dz, -self.max_linear_vel, self.max_linear_vel)
+
+        twist.twist.angular.x = np.clip(self.kp_angular * error_r[0], -self.max_angular_vel, self.max_angular_vel)
+        twist.twist.angular.y = np.clip(self.kp_angular * error_r[1], -self.max_angular_vel, self.max_angular_vel)
+        twist.twist.angular.z = np.clip(self.kp_angular * error_r[2], -self.max_angular_vel, self.max_angular_vel)
+
+        self.twist_pub.publish(twist)
 
 def main(args=None):
     rclpy.init(args=args)
