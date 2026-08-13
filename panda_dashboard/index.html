@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panda MJK Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <h1>Panda MJK <span>Dashboard</span></h1>
+  <div class="connect-bar">
+    <input id="wsHost" type="text" value="localhost" spellcheck="false">
+    <span>:</span>
+    <input id="wsPort" type="text" value="9090" spellcheck="false" size="5">
+    <button id="connectBtn">Connect</button>
+    <span id="statusDot" class="status-dot disconnected"></span>
+    <span id="statusText">Disconnected</span>
+  </div>
+</header>
+
+<main class="grid">
+
+  <section class="panel" id="jointMonitorPanel">
+    <h2>Joint States <span class="hz" id="jsHz"></span></h2>
+    <table class="joint-table">
+      <thead>
+        <tr><th>Joint</th><th>Position (deg)</th><th>Position (rad)</th><th>Velocity (rad/s)</th></tr>
+      </thead>
+      <tbody id="jointStateBody"></tbody>
+    </table>
+    <h2>Servo Status</h2>
+    <div id="servoStatus" class="servo-status">no data</div>
+  </section>
+
+  <section class="panel" id="jointControlPanel">
+    <h2>Joint Control</h2>
+    <div class="control-row">
+      <label><input type="checkbox" id="liveSend"> live send while dragging</label>
+      <button id="syncBtn">Sync to Current</button>
+      <button id="homeBtn">Home Pose</button>
+      <button id="sendBtn" class="primary">Send</button>
+    </div>
+    <div id="jointSliders"></div>
+  </section>
+
+  <section class="panel" id="cartesianPanel">
+    <h2>Cartesian Jog</h2>
+    <p class="hint">Hold a button to jog the end effector in <code>link0</code>. Releasing halts the motion.</p>
+    <div class="control-row">
+      <label>Speed <input id="jogScale" type="range" min="0.05" max="1" step="0.05" value="0.3"></label>
+      <span id="jogScaleVal">0.30</span>
+      <button id="jogStopBtn" class="danger">Stop</button>
+    </div>
+    <div class="jog-grid">
+      <div class="jog-group">
+        <h3>Translate</h3>
+        <div class="jog-buttons">
+          <button data-axis="linear" data-comp="x" data-sign="1">+X</button>
+          <button data-axis="linear" data-comp="x" data-sign="-1">-X</button>
+          <button data-axis="linear" data-comp="y" data-sign="1">+Y</button>
+          <button data-axis="linear" data-comp="y" data-sign="-1">-Y</button>
+          <button data-axis="linear" data-comp="z" data-sign="1">+Z</button>
+          <button data-axis="linear" data-comp="z" data-sign="-1">-Z</button>
+        </div>
+      </div>
+      <div class="jog-group">
+        <h3>Rotate</h3>
+        <div class="jog-buttons">
+          <button data-axis="angular" data-comp="x" data-sign="1">+Roll</button>
+          <button data-axis="angular" data-comp="x" data-sign="-1">-Roll</button>
+          <button data-axis="angular" data-comp="y" data-sign="1">+Pitch</button>
+          <button data-axis="angular" data-comp="y" data-sign="-1">-Pitch</button>
+          <button data-axis="angular" data-comp="z" data-sign="1">+Yaw</button>
+          <button data-axis="angular" data-comp="z" data-sign="-1">-Yaw</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="gripperPanel">
+    <h2>Gripper</h2>
+    <p class="hint">Sends a GripperCommand action goal to <code>panda_gripper_controller</code> (simulation only).</p>
+    <div class="control-row">
+      <button id="gripperOpenBtn">Open</button>
+      <button id="gripperCloseBtn">Close</button>
+    </div>
+  </section>
+
+  <section class="panel" id="logPanel">
+    <h2>Log</h2>
+    <div id="log" class="log"></div>
+  </section>
+
+</main>
+
+<script src="lib/roslib.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -36,5 +36,5 @@ echo "Servo Errors (Status codes other than 0):"
 cat /tmp/status.log | grep -v 'data: 0' | sort | uniq -c
 
 echo "Command changes during movement:"
-cat /tmp/commands.log | uniq | wc -l
-echo "If the command count is high, it means the joint positions were successfully updating in both directions!"
+cat /tmp/commands.log | grep -A 1 'data:' | grep -v 'data:' | grep -v -- '--' | uniq | wc -l
+echo "If the command count is > 1, it means the joint positions were successfully updating!"

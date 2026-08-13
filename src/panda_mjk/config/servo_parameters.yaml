@@ -3,7 +3,7 @@
     moveit_servo:
       use_gazebo: false                     # We use MuJoCo, not Gazebo
       low_latency_mode: false
-      smoothing_filter_plugin_name: ""
+      smoothing_filter_plugin_name: "online_signal_smoothing::ButterworthFilterPlugin"
       # No separate move_group node is run, so Servo's own PlanningSceneMonitor
       # is the primary one (advertises /get_planning_scene).
       is_primary_planning_scene_monitor: true

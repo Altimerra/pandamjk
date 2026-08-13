@@ -1,6 +1,7 @@
 import os
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource, AnyLaunchDescriptionSource
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -19,10 +20,16 @@ def generate_launch_description():
             default_value="192.168.1.100",
             description="IP address of the physical Franka robot.",
         ),
+        DeclareLaunchArgument(
+            "start_rosbridge",
+            default_value="true",
+            description="Start the rosbridge websocket server (true/false).",
+        ),
     ]
 
     use_sim = LaunchConfiguration("use_sim")
     robot_ip = LaunchConfiguration("robot_ip")
+    start_rosbridge = LaunchConfiguration("start_rosbridge")
 
     # Generate robot_description via Xacro
     robot_description_content = Command([
@@ -97,8 +104,32 @@ def generate_launch_description():
         parameters=[robot_description],
     )
 
+    # Rosbridge WebSocket Server
+    rosbridge_launch = IncludeLaunchDescription(
+        AnyLaunchDescriptionSource(
+            PathJoinSubstitution([
+                FindPackageShare("rosbridge_server"),
+                "launch",
+                "rosbridge_websocket_launch.xml"
+            ])
+        ),
+        condition=IfCondition(start_rosbridge)
+    )
+
+    # rosapi provides topic/service/type introspection over the rosbridge
+    # websocket. rosbridge_websocket_launch.xml does not bring it up on
+    # its own, but web clients need it to list/add topics.
+    rosapi_node = Node(
+        package="rosapi",
+        executable="rosapi_node",
+        output="both",
+        condition=IfCondition(start_rosbridge),
+    )
+
     return LaunchDescription(
         declared_arguments + [
+            rosbridge_launch,
+            rosapi_node,
             ros2_control_node,
             mujoco_control_node,
             rsp_node,

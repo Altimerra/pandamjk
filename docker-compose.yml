@@ -24,7 +24,7 @@ services:
     environment:
       - DISPLAY=${DISPLAY:-:0}
       - QT_X11_NO_MITSHM=1
-      - MUJOCO_GL=glfw
+      - MUJOCO_GL=osmesa
 
     # 4. Volume Mounts
     volumes:

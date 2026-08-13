@@ -39,6 +39,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-humble-moveit-servo \
     ros-humble-joy \
     ros-humble-teleop-twist-joy \
+    ros-humble-rosbridge-suite \
+    xvfb \
     && rm -rf /var/lib/apt/lists/*
 
 # Install MuJoCo Python bindings & common robotics libraries
@@ -49,7 +51,7 @@ RUN pip3 install --no-cache-dir \
     transforms3d
 
 # Set Environment Variables for Rendering & ROS
-ENV MUJOCO_GL=glfw
+ENV MUJOCO_GL=osmesa
 ENV QT_X11_NO_MITSHM=1
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=graphics,utility,compute,display
