@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="panda">
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="fer">
   <!-- Arguments -->
   <xacro:arg name="use_sim" default="true"/>
   <xacro:arg name="robot_ip" default="192.168.1.100"/>

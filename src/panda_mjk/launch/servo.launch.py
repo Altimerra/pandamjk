@@ -1,10 +1,11 @@
 import os
 import yaml
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, ExecuteProcess
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.parameter_descriptions import ParameterValue
-from launch.substitutions import Command, FindExecutable, PathJoinSubstitution
+from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from ament_index_python.packages import get_package_share_directory
 
 
@@ -16,6 +17,15 @@ def load_yaml(package_name, file_path):
 
 
 def generate_launch_description():
+    # MuJoCo's ros2_control_node runs with use_sim_time:=true (see
+    # panda_control.launch.py), so /joint_states carries sim-time stamps.
+    # Match that here for consistency with the rest of the sim pipeline;
+    # pass use_sim_time:=false for real hardware (no /clock source there).
+    use_sim_time_arg = DeclareLaunchArgument(
+        "use_sim_time", default_value="true",
+        description="Use simulation (MuJoCo) clock. Must match panda_control.launch.py's use_sim.",
+    )
+    use_sim_time = LaunchConfiguration("use_sim_time")
     # robot_description (recomputed here, same as panda_control.launch.py --
     # MoveIt Servo needs it as a parameter on this node, not via topic).
     robot_description_content = Command([
@@ -67,8 +77,20 @@ def generate_launch_description():
             robot_description,
             robot_description_semantic,
             robot_description_kinematics,
+            {"use_sim_time": use_sim_time},
         ],
         output="screen",
     )
 
-    return LaunchDescription([servo_node])
+    # MoveIt Servo starts paused and produces no output at all on
+    # command_out_topic until this is called -- confirmed directly: every
+    # manual test that skipped this had zero output despite valid, correctly
+    # timestamped twist and joint_state input. `ros2 service call` blocks
+    # until the service is available, so no explicit delay/wait is needed
+    # here even though it starts alongside servo_node.
+    start_servo = ExecuteProcess(
+        cmd=["ros2", "service", "call", "/servo_node/start_servo", "std_srvs/srv/Trigger", "{}"],
+        output="screen",
+    )
+
+    return LaunchDescription([use_sim_time_arg, servo_node, start_servo])
