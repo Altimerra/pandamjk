@@ -42,7 +42,7 @@ Visualization Manager:
       Value: true
       Visual Enabled: true
     - Class: rviz_default_plugins/TF
-      Enabled: true
+      Enabled: false
       Name: TF
       Show Arrows: true
       Show Axes: true
@@ -60,7 +60,7 @@ Visualization Manager:
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /teleop_target/update
+        Value: /interactive_teleop/teleop_target/update
       Value: true
   Enabled: true
   Global Options:
