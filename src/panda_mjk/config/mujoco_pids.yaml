@@ -4,12 +4,9 @@
 # but it's good practice to provide it to avoid warnings.
 mujoco_ros2_control:
   ros__parameters:
-    pids:
-      joint1: {p: 100.0, i: 0.0, d: 10.0, i_clamp: 0.0}
-      joint2: {p: 100.0, i: 0.0, d: 10.0, i_clamp: 0.0}
-      joint3: {p: 100.0, i: 0.0, d: 10.0, i_clamp: 0.0}
-      joint4: {p: 100.0, i: 0.0, d: 10.0, i_clamp: 0.0}
-      joint5: {p: 100.0, i: 0.0, d: 10.0, i_clamp: 0.0}
-      joint6: {p: 100.0, i: 0.0, d: 10.0, i_clamp: 0.0}
-      joint7: {p: 100.0, i: 0.0, d: 10.0, i_clamp: 0.0}
-      finger_joint1: {p: 100.0, i: 0.0, d: 1.0, i_clamp: 0.0}
+    # Intentionally left blank. Do not define `pids` here.
+    # Since mujoco_menagerie's panda.xml uses <position> actuators, 
+    # we want mujoco_ros2_control to pass the position commands directly 
+    # to the MuJoCo actuators, rather than running a software PID loop 
+    # that calculates an effort and incorrectly sets it as the position setpoint.
+    use_sim_time: true
