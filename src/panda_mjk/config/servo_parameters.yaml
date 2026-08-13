@@ -1,8 +1,18 @@
 /**:
   ros__parameters:
     moveit_servo:
+      use_gazebo: false                     # We use MuJoCo, not Gazebo
+      low_latency_mode: false
+      smoothing_filter_plugin_name: "online_signal_smoothing::ButterworthFilterPlugin"
+      # No separate move_group node is run, so Servo's own PlanningSceneMonitor
+      # is the primary one (advertises /get_planning_scene).
+      is_primary_planning_scene_monitor: true
+      num_outgoing_halt_msgs_to_publish: 4
+
       # Kinematic properties
-      move_group_name: panda_arm
+      # "arm" matches the group name in franka_description's fer.srdf.xacro
+      # (base_link: link0, tip_link: link8) -- not "panda_arm".
+      move_group_name: arm
       planning_frame: link0
       ee_frame_name: link8
       robot_link_command_frame: link0

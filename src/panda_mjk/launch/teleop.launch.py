@@ -1,7 +1,7 @@
-import os
 from launch import LaunchDescription
 from launch_ros.actions import Node
-from ament_index_python.packages import get_package_share_directory
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
 
@@ -22,28 +22,17 @@ def generate_launch_description():
         name="cartesian_teleop",
         output="screen",
     )
-    
-    # In a full MoveIt Servo deployment, we'd also launch the servo_node here,
-    # but that requires a full MoveIt config package which we might assume is generated or external.
-    # We will just launch the teleop node assuming Servo is running or a custom IK controller is listening.
-    
-    servo_yaml = PathJoinSubstitution([
-        FindPackageShare("panda_mjk"),
-        "config",
-        "servo_parameters.yaml"
-    ])
-    
-    # NOTE: To actually run moveit_servo, you need a MoveIt Config package for the Panda (FER).
-    # Assuming one exists or we mock it:
-    # servo_node = Node(
-    #     package="moveit_servo",
-    #     executable="servo_node",
-    #     parameters=[servo_yaml, moveit_config.to_dict()],
-    #     output="screen"
-    # )
+
+    # MoveIt Servo -- consumes the TwistStamped commands cartesian_teleop
+    # publishes on /servo_node/delta_twist_cmds and drives the robot.
+    servo_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution([FindPackageShare("panda_mjk"), "launch", "servo.launch.py"])
+        )
+    )
 
     return LaunchDescription([
         joy_node,
         cartesian_teleop_node,
-        # servo_node
+        servo_launch,
     ])

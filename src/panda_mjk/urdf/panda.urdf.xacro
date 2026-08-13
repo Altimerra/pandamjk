@@ -10,7 +10,16 @@
        arm_id is "fer" (Franka Emika Research), franka_description's current identifier
        for the real Franka Emika Panda robot. "fr3" is a different, newer physical robot
        (different kinematics/dynamics/link geometry); do not use it here, it would
-       load the wrong joint limits/kinematics/inertials for this robot. -->
+       load the wrong joint limits/kinematics/inertials for this robot.
+
+       hand=false: franka_robot.xacro's hand-attachment code doesn't respect
+       no_prefix (it hardcodes "${arm_id}_link8" as the parent link and
+       "${arm_id}_"-prefixed hand/finger link names regardless), so it's
+       incompatible with a no_prefix arm and fails to parse. We don't need
+       it in this URDF anyway: MuJoCo renders the real gripper mesh directly
+       from panda.xml, and the real hardware gripper is driven separately by
+       the franka_gripper node, not through this ros2_control/URDF path;
+       only the finger_joint1 interface below (for MuJoCo sim) is needed. -->
   <xacro:include filename="$(find franka_description)/robots/common/franka_robot.xacro"/>
   <xacro:franka_robot arm_id="fer"
                       joint_limits="${xacro.load_yaml('$(find franka_description)/robots/fer/joint_limits.yaml')}"
@@ -18,7 +27,7 @@
                       inertials="${xacro.load_yaml('$(find franka_description)/robots/fer/inertials.yaml')}"
                       dynamics="${xacro.load_yaml('$(find franka_description)/robots/fer/dynamics.yaml')}"
                       gazebo="false"
-                      hand="true"
+                      hand="false"
                       tcp_xyz="0 0 0.1034"
                       tcp_rpy="0 0 0"
                       no_prefix="true" />
