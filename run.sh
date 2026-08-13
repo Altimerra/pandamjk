@@ -32,6 +32,11 @@ done
 # Allow the container's root user to connect to the host X server.
 xhost +local:docker >/dev/null 2>&1 || true
 
+# docker-compose bind-mounts ./src over the image's /ros2_ws/src for live
+# dev editing, which shadows any submodule init done at image build time
+# (e.g. libfranka -> libfranka-common). Keep host checkouts self-healing.
+find "$(dirname "$0")/src" -maxdepth 2 -name ".gitmodules" -execdir git submodule update --init --recursive \; 2>/dev/null || true
+
 docker compose up -d $BUILD_FLAG
 
 CONTAINER="ros2_mujoco_container"
