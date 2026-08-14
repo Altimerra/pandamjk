@@ -36,7 +36,10 @@ let jointStateTopic = null;
 let servoStatusTopic = null;
 let commandTopic = null;
 let twistTopic = null;
+let effortTopic = null;
 let latestJointPositions = null; // ordered by JOINT_NAMES
+let latestJointVelocities = null; // ordered by JOINT_NAMES
+let impedanceInterval = null;
 let lastJsStamp = 0;
 let jsRateEma = null;
 let jogInterval = null;
@@ -126,6 +129,12 @@ function subscribeAll() {
     name: "/servo_node/delta_twist_cmds",
     messageType: "geometry_msgs/msg/TwistStamped",
   });
+
+  effortTopic = new ROSLIB.Topic({
+    ros,
+    name: "/forward_effort_controller/commands",
+    messageType: "std_msgs/msg/Float64MultiArray",
+  });
 }
 
 // ---- Joint state monitor ---------------------------------------------
@@ -151,6 +160,9 @@ function onJointState(msg) {
 
   if (rows.every((r) => r.pos !== null)) {
     latestJointPositions = rows.map((r) => r.pos);
+  }
+  if (rows.every((r) => r.vel !== null)) {
+    latestJointVelocities = rows.map((r) => r.vel);
   }
 
   const body = $("jointStateBody");
@@ -279,6 +291,44 @@ function stopJog() {
   }
 }
 
+// ---- Impedance Control ---------------------------------------------------
+
+function toggleImpedance() {
+  if (impedanceInterval) {
+    clearInterval(impedanceInterval);
+    impedanceInterval = null;
+    $("impedanceToggleBtn").textContent = "Start Impedance Control";
+    log("Impedance control stopped.");
+    if (effortTopic) {
+      effortTopic.publish(new ROSLIB.Message({ layout: { dim: [], data_offset: 0 }, data: [0, 0, 0, 0, 0, 0, 0] }));
+    }
+  } else {
+    $("impedanceToggleBtn").textContent = "Stop Impedance Control";
+    log("Impedance control started.");
+    impedanceInterval = setInterval(impedanceLoop, 20); // 50 Hz
+  }
+}
+
+function impedanceLoop() {
+  if (!effortTopic || !latestJointPositions || !latestJointVelocities) return;
+  const target = getSliderValues();
+  const K_base = Number($("impedanceK").value);
+  const D_base = Number($("impedanceD").value);
+  
+  // Lower gains for smaller joints
+  const K_gains = [K_base, K_base, K_base, K_base, K_base / 2, K_base / 4, K_base / 10];
+  const D_gains = [D_base, D_base, D_base, D_base, D_base / 2, D_base / 4, D_base / 10];
+  
+  const torques = target.map((t, i) => {
+    const err = t - latestJointPositions[i];
+    return K_gains[i] * err - D_gains[i] * latestJointVelocities[i];
+  });
+  
+  effortTopic.publish(
+    new ROSLIB.Message({ layout: { dim: [], data_offset: 0 }, data: torques })
+  );
+}
+
 // ---- Gripper (best-effort, sim only) -------------------------------------
 
 function sendGripperCommand(position, maxEffort) {
@@ -332,6 +382,14 @@ function init() {
 
   $("gripperOpenBtn").addEventListener("click", () => sendGripperCommand(0.04, 20));
   $("gripperCloseBtn").addEventListener("click", () => sendGripperCommand(0.0, 40));
+
+  $("impedanceToggleBtn").addEventListener("click", toggleImpedance);
+  $("impedanceK").addEventListener("input", () => {
+    $("impedanceKVal").textContent = Number($("impedanceK").value).toFixed(0);
+  });
+  $("impedanceD").addEventListener("input", () => {
+    $("impedanceDVal").textContent = Number($("impedanceD").value).toFixed(1);
+  });
 
   window.addEventListener("beforeunload", () => {
     if (ros) ros.close();
