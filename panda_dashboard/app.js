@@ -469,9 +469,8 @@ function fetchTopicFieldsForPlot() {
   const topicName = select.value;
   const topicType = select.options[select.selectedIndex].dataset.type;
   
-  const datalist = $("plotFieldsDatalist");
-  datalist.innerHTML = "";
-  $("plotFieldInput").placeholder = "Loading fields...";
+  const fieldSelect = $("plotFieldInput");
+  fieldSelect.innerHTML = '<option value="">Loading fields...</option>';
 
   const tempSub = new ROSLIB.Topic({
     ros: ros,
@@ -483,8 +482,11 @@ function fetchTopicFieldsForPlot() {
   tempSub.subscribe((msg) => {
     tempSub.unsubscribe();
     const paths = extractNumberPaths(msg);
-    datalist.innerHTML = paths.map(p => `<option value="${p}">`).join("");
-    $("plotFieldInput").placeholder = paths.length > 0 ? "Select or type a field" : "No numeric fields found";
+    if (paths.length > 0) {
+      fieldSelect.innerHTML = paths.map(p => `<option value="${p}">${p}</option>`).join("");
+    } else {
+      fieldSelect.innerHTML = '<option value="">No numeric fields found</option>';
+    }
     log(`Discovered ${paths.length} numeric fields in ${topicName}`, "ok");
   });
 }
