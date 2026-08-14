@@ -160,6 +160,9 @@ function onJointState(msg) {
         log(`MISMATCH ERROR: name.length=${msg.name.length} != position.length=${msg.position.length}`, "err");
         log(`name array: ${JSON.stringify(msg.name)}`, "err");
         log(`position array: ${JSON.stringify(msg.position)}`, "err");
+        log(`velocity array: ${JSON.stringify(msg.velocity)}`, "err");
+        log(`effort array: ${JSON.stringify(msg.effort)}`, "err");
+        log(`header frame_id: "${msg.header ? msg.header.frame_id : ''}"`, "err");
         hasError = true;
       }
     }
