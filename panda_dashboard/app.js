@@ -31,6 +31,18 @@ let jsRateEma = null;
 let liveSendLastAt = 0;
 let lastDebugLogStamp = 0;
 
+// ---- Generic Topic Monitoring & Live Plotting State ----
+let allTopicsList = [];
+let activeTopicSub = null;
+let activeTopicName = null;
+let activeTopicType = null;
+let plotTopicSub = null;
+let plotTopicName = null;
+let plotTopicType = null;
+let uplotInst = null;
+let plotData = [[], []]; // [x], [y]
+let plotStartTime = 0;
+
 const $ = (id) => document.getElementById(id);
 
 function log(msg, cls = "") {
@@ -73,6 +85,8 @@ function connect() {
     setConnStatus("disconnected", "Disconnected");
     log("Disconnected from rosbridge", "warn");
     stopImpedance();
+    stopMonitoringTopic();
+    stopPlotting();
   });
 }
 
@@ -327,6 +341,178 @@ function sendGripperCommand(position, maxEffort = 40.0) {
   log(`Sent gripper goal: position=${position.toFixed(3)}m, max_effort=${maxEffort}N`, "ok");
 }
 
+// ---- Topic Explorer ----------------------------------------------------
+
+function fetchTopics() {
+  if (!ros) { log("Not connected", "err"); return; }
+  ros.getTopics((result) => {
+    allTopicsList = result.topics.map((t, i) => ({ name: t, type: result.types[i] }));
+    allTopicsList.sort((a, b) => a.name.localeCompare(b.name));
+    
+    // Update the plotting dropdown
+    const select = $("plotTopicSelect");
+    select.innerHTML = "";
+    allTopicsList.forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t.name; opt.textContent = t.name;
+      opt.dataset.type = t.type;
+      select.appendChild(opt);
+    });
+
+    renderTopicList();
+    log(`Fetched ${allTopicsList.length} topics`, "ok");
+  });
+}
+
+function renderTopicList() {
+  const query = $("topicSearch").value.toLowerCase();
+  const list = $("topicList");
+  list.innerHTML = "";
+  
+  allTopicsList.filter(t => t.name.toLowerCase().includes(query)).forEach(t => {
+    const item = document.createElement("div");
+    item.className = "topic-item";
+    
+    const info = document.createElement("div");
+    info.innerHTML = `<span class="topic-name">${t.name}</span><span class="topic-type">${t.type}</span>`;
+    
+    const btn = document.createElement("button");
+    btn.className = "monitor-btn";
+    btn.textContent = "Monitor";
+    btn.onclick = () => startMonitoringTopic(t.name, t.type);
+    
+    item.appendChild(info);
+    item.appendChild(btn);
+    list.appendChild(item);
+  });
+}
+
+function startMonitoringTopic(topicName, topicType) {
+  stopMonitoringTopic();
+  
+  $("activeTopicName").textContent = topicName;
+  $("topicDataViewer").style.display = "block";
+  $("activeTopicData").textContent = "Waiting for data...";
+  
+  activeTopicName = topicName;
+  activeTopicType = topicType;
+  
+  activeTopicSub = new ROSLIB.Topic({
+    ros: ros,
+    name: topicName,
+    messageType: topicType
+  });
+  
+  activeTopicSub.subscribe((msg) => {
+    // Only update every 100ms max to prevent UI freezing on high freq topics
+    if (Date.now() - (activeTopicSub.lastUpdate || 0) > 100) {
+      $("activeTopicData").textContent = JSON.stringify(msg, null, 2);
+      activeTopicSub.lastUpdate = Date.now();
+    }
+  });
+  log(`Started monitoring ${topicName}`, "ok");
+}
+
+function stopMonitoringTopic() {
+  if (activeTopicSub) {
+    activeTopicSub.unsubscribe();
+    activeTopicSub = null;
+  }
+  $("topicDataViewer").style.display = "none";
+}
+
+// ---- Live Plotter ------------------------------------------------------
+
+function resolvePath(obj, path) {
+  return path.split(/[\.\[\]\'\"]/).filter(p => p).reduce((o, p) => o ? o[p] : undefined, obj);
+}
+
+function initUPlot() {
+  if (uplotInst) {
+    uplotInst.destroy();
+  }
+  const container = $("plotContainer");
+  container.innerHTML = "";
+  
+  const opts = {
+    title: "",
+    id: "livePlot",
+    class: "live-plot",
+    width: container.clientWidth || 400,
+    height: 250,
+    axes: [
+      { grid: { show: true, stroke: "rgba(255,255,255,0.1)" } },
+      { grid: { show: true, stroke: "rgba(255,255,255,0.1)" } }
+    ],
+    series: [
+      {},
+      {
+        stroke: "#5b8cff",
+        fill: "rgba(91, 140, 255, 0.1)",
+        width: 2
+      }
+    ]
+  };
+  plotData = [[], []];
+  uplotInst = new uPlot(opts, plotData, container);
+}
+
+function startPlotting() {
+  const select = $("plotTopicSelect");
+  if (!select.options[select.selectedIndex]) return;
+  const topicName = select.value;
+  const topicType = select.options[select.selectedIndex].dataset.type;
+  const fieldPath = $("plotFieldInput").value.trim();
+  
+  if (!fieldPath) {
+    log("Please enter a data field to plot", "err");
+    return;
+  }
+
+  stopPlotting();
+  initUPlot();
+  plotStartTime = performance.now() / 1000;
+  
+  plotTopicSub = new ROSLIB.Topic({
+    ros: ros,
+    name: topicName,
+    messageType: topicType
+  });
+  
+  let lastDraw = performance.now();
+  
+  plotTopicSub.subscribe((msg) => {
+    const val = resolvePath(msg, fieldPath);
+    if (typeof val === "number") {
+      const now = performance.now();
+      const t = now / 1000 - plotStartTime;
+      
+      plotData[0].push(t);
+      plotData[1].push(val);
+      
+      // keep last 500 points
+      if (plotData[0].length > 500) {
+        plotData[0].shift();
+        plotData[1].shift();
+      }
+      
+      if (now - lastDraw > 30) { // cap at ~30 FPS
+        uplotInst.setData(plotData);
+        lastDraw = now;
+      }
+    }
+  });
+  log(`Started plotting ${fieldPath} from ${topicName}`, "ok");
+}
+
+function stopPlotting() {
+  if (plotTopicSub) {
+    plotTopicSub.unsubscribe();
+    plotTopicSub = null;
+    log("Stopped plotting", "warn");
+  }
+}
+
 // ---- DOM Wireup --------------------------------------------------------
 
 window.addEventListener("DOMContentLoaded", () => {
@@ -370,6 +556,20 @@ window.addEventListener("DOMContentLoaded", () => {
 
   $("clearLogBtn").addEventListener("click", () => {
     $("log").innerHTML = "";
+  });
+
+  $("refreshTopicsBtn").addEventListener("click", fetchTopics);
+  $("topicSearch").addEventListener("input", renderTopicList);
+  $("closeTopicViewerBtn").addEventListener("click", stopMonitoringTopic);
+  
+  $("startPlotBtn").addEventListener("click", startPlotting);
+  $("stopPlotBtn").addEventListener("click", stopPlotting);
+
+  window.addEventListener("resize", () => {
+    if (uplotInst) {
+      const container = $("plotContainer");
+      uplotInst.setSize({ width: container.clientWidth || 400, height: 250 });
+    }
   });
 
   // Auto-connect on load

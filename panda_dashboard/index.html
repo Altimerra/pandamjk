@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Panda MJK Dashboard</title>
+<link rel="stylesheet" href="lib/uPlot.min.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -81,9 +82,46 @@
     <div id="log" class="log"></div>
   </section>
 
+  <section class="panel" id="topicExplorerPanel" style="grid-column: span 1;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <h2 style="margin: 0;">Topic Explorer</h2>
+      <button id="refreshTopicsBtn" style="padding: 2px 8px; font-size: 11px;">Refresh</button>
+    </div>
+    <div style="margin-bottom: 10px;">
+      <input type="text" id="topicSearch" placeholder="Search topics..." style="width: 100%; padding: 6px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 4px;">
+    </div>
+    <div id="topicList" class="topic-list"></div>
+    <div id="topicDataViewer" class="topic-data-viewer" style="display: none; margin-top: 10px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <span id="activeTopicName" style="font-size: 13px; color: var(--accent); font-weight: 500;"></span>
+        <button id="closeTopicViewerBtn" style="padding: 2px 6px; font-size: 10px;">Close</button>
+      </div>
+      <div id="activeTopicData" class="log" style="height: 200px; font-size: 11px;"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="livePlotterPanel" style="grid-column: span 1;">
+    <h2>Live Plotter</h2>
+    <p class="hint">Select a topic from the explorer to plot its fields.</p>
+    <div class="control-row">
+      <label for="plotTopicSelect">Topic:</label>
+      <select id="plotTopicSelect" style="flex: 1; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px;"></select>
+    </div>
+    <div class="control-row">
+      <label for="plotFieldInput">Data Field:</label>
+      <input type="text" id="plotFieldInput" placeholder="e.g. position[0] or pose.position.x" style="flex: 1; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px;">
+    </div>
+    <div class="control-row">
+      <button id="startPlotBtn" class="primary">Start Plot</button>
+      <button id="stopPlotBtn">Stop</button>
+    </div>
+    <div id="plotContainer" style="width: 100%; height: 250px; margin-top: 10px;"></div>
+  </section>
+
 </main>
 
 <script src="lib/roslib.min.js"></script>
+<script src="lib/uPlot.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
