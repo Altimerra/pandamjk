@@ -2,7 +2,8 @@
 // (panda_control.launch.py brings this up on :9090) using roslibjs.
 // No backend of its own; see run_dashboard.py for the static file server.
 
-const JOINT_NAMES = ["fer_joint1", "fer_joint2", "fer_joint3", "fer_joint4", "fer_joint5", "fer_joint6", "fer_joint7"];
+const ARM_JOINTS = ["fer_joint1", "fer_joint2", "fer_joint3", "fer_joint4", "fer_joint5", "fer_joint6", "fer_joint7"];
+const MONITOR_JOINTS = [...ARM_JOINTS, "finger_joint1"];
 
 // franka_description's robots/fer/joint_limits.yaml position limits (rad).
 const JOINT_LIMITS = {
@@ -37,13 +38,14 @@ let servoStatusTopic = null;
 let commandTopic = null;
 let twistTopic = null;
 let effortTopic = null;
-let latestJointPositions = null; // ordered by JOINT_NAMES
-let latestJointVelocities = null; // ordered by JOINT_NAMES
+let latestJointPositions = null; // ordered by ARM_JOINTS
+let latestJointVelocities = null; // ordered by ARM_JOINTS
 let impedanceInterval = null;
 let lastJsStamp = 0;
 let jsRateEma = null;
 let jogInterval = null;
 let liveSendLastAt = 0;
+let lastDebugLogStamp = 0;
 
 const $ = (id) => document.getElementById(id);
 
@@ -148,21 +150,65 @@ function onJointState(msg) {
   }
   lastJsStamp = now;
 
+  // Debug logic mirroring robot_state_publisher's validation
+  if (now - lastDebugLogStamp > 2000) {
+    let hasError = false;
+    
+    // Check array size mismatch
+    if (msg.name.length !== msg.position.length) {
+      if (msg.position.length > 0) {
+        log(`MISMATCH ERROR: name.length=${msg.name.length} != position.length=${msg.position.length}`, "err");
+        hasError = true;
+      }
+    }
+    
+    // Check for NaNs in position
+    msg.position.forEach((pos, i) => {
+      if (Number.isNaN(pos)) {
+        log(`NaN ERROR: position is NaN for joint: ${msg.name[i]}`, "err");
+        hasError = true;
+      }
+    });
+
+    // Check for NaNs in velocity and effort (warnings)
+    if (msg.velocity) {
+      msg.velocity.forEach((vel, i) => {
+        if (Number.isNaN(vel)) {
+          log(`NaN WARNING: velocity is NaN for joint: ${msg.name[i]}`, "warn");
+          hasError = true;
+        }
+      });
+    }
+    if (msg.effort) {
+      msg.effort.forEach((eff, i) => {
+        if (Number.isNaN(eff)) {
+          log(`NaN WARNING: effort is NaN for joint: ${msg.name[i]}`, "warn");
+          hasError = true;
+        }
+      });
+    }
+    
+    if (hasError) {
+      lastDebugLogStamp = now; // Throttle error logging to avoid flooding the DOM
+    }
+  }
+
   const nameToIdx = {};
   msg.name.forEach((n, i) => (nameToIdx[n] = i));
 
-  const rows = JOINT_NAMES.map((name) => {
+  const rows = MONITOR_JOINTS.map((name) => {
     const i = nameToIdx[name];
     const pos = i !== undefined ? msg.position[i] : null;
     const vel = i !== undefined && msg.velocity ? msg.velocity[i] : null;
     return { name, pos, vel };
   });
 
-  if (rows.every((r) => r.pos !== null)) {
-    latestJointPositions = rows.map((r) => r.pos);
+  const armRows = rows.slice(0, ARM_JOINTS.length);
+  if (armRows.every((r) => r.pos !== null)) {
+    latestJointPositions = armRows.map((r) => r.pos);
   }
-  if (rows.every((r) => r.vel !== null)) {
-    latestJointVelocities = rows.map((r) => r.vel);
+  if (armRows.every((r) => r.vel !== null)) {
+    latestJointVelocities = armRows.map((r) => r.vel);
   }
 
   const body = $("jointStateBody");
@@ -188,7 +234,7 @@ function onServoStatus(msg) {
 
 function buildSliders() {
   const container = $("jointSliders");
-  container.innerHTML = JOINT_NAMES.map((name) => {
+  container.innerHTML = ARM_JOINTS.map((name) => {
     const [lo, hi] = JOINT_LIMITS[name];
     return `
       <div class="joint-row">
@@ -198,7 +244,7 @@ function buildSliders() {
       </div>`;
   }).join("");
 
-  JOINT_NAMES.forEach((name) => {
+  ARM_JOINTS.forEach((name) => {
     const slider = $(`slider-${name}`);
     slider.addEventListener("input", () => {
       $(`val-${name}`).textContent = Number(slider.value).toFixed(3);
@@ -214,11 +260,11 @@ function buildSliders() {
 }
 
 function getSliderValues() {
-  return JOINT_NAMES.map((name) => Number($(`slider-${name}`).value));
+  return ARM_JOINTS.map((name) => Number($(`slider-${name}`).value));
 }
 
 function setSliderValues(values) {
-  JOINT_NAMES.forEach((name, i) => {
+  ARM_JOINTS.forEach((name, i) => {
     $(`slider-${name}`).value = values[i];
     $(`val-${name}`).textContent = Number(values[i]).toFixed(3);
   });
