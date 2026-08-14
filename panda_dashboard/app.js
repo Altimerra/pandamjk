@@ -266,6 +266,7 @@ function startImpedance() {
     log("Not connected to rosbridge", "err");
     return;
   }
+  syncToCurrent(); // Sync sliders to current position so the robot doesn't violently snap
   impedanceInterval = setInterval(impedanceLoop, 20); // 50 Hz
   $("impedanceToggleBtn").textContent = "Stop Impedance Control";
   $("impedanceToggleBtn").className = "danger";
