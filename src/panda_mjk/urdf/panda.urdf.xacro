@@ -35,15 +35,24 @@
                       tcp_rpy="0 0 0"
                       no_prefix="false" />
 
-  <!-- Dummy link and joint for finger_joint1.
+  <!-- Dummy links and joints for gripper fingers.
        Because hand="false" is set above, the hand links aren't generated from franka_description.
-       We define finger_joint1 here for TF/kinematics corresponding to the gripper joint. -->
+       We define finger_joint1 and finger_joint2 here for TF/kinematics corresponding to the gripper joints. -->
   <link name="fer_leftfinger_dummy"/>
   <joint name="finger_joint1" type="prismatic">
     <parent link="fer_link7"/>
     <child link="fer_leftfinger_dummy"/>
     <origin xyz="0 0 0.1654" rpy="0 0 0"/>
     <axis xyz="0 1 0"/>
+    <limit lower="0.0" upper="0.04" effort="100" velocity="0.2"/>
+  </joint>
+
+  <link name="fer_rightfinger_dummy"/>
+  <joint name="finger_joint2" type="prismatic">
+    <parent link="fer_link7"/>
+    <child link="fer_rightfinger_dummy"/>
+    <origin xyz="0 0 0.1654" rpy="0 0 0"/>
+    <axis xyz="0 -1 0"/>
     <limit lower="0.0" upper="0.04" effort="100" velocity="0.2"/>
   </joint>
 
@@ -94,9 +103,18 @@
     <xacro:configure_joint joint_name="fer_joint6"/>
     <xacro:configure_joint joint_name="fer_joint7"/>
 
-    <!-- Gripper joint definition (Only finger_joint1 is needed as control interface, finger_joint2 is mimicked/coupled) -->
+    <!-- Gripper joint definition (finger_joint1 has command+state, finger_joint2 has state exported from sim) -->
     <joint name="finger_joint1">
       <command_interface name="position" />
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="velocity">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="finger_joint2">
       <state_interface name="position">
         <param name="initial_value">0.0</param>
       </state_interface>
