@@ -35,6 +35,20 @@
                       tcp_rpy="0 0 0"
                       no_prefix="false" />
 
+  <!-- Dummy link and joint for finger_joint1 to satisfy joint_state_broadcaster.
+       Because hand="false" is set above, the hand links aren't generated. However,
+       we still export finger_joint1 in ros2_control for the gripper action server.
+       If the joint doesn't exist in the URDF, joint_state_broadcaster pushes its
+       position but skips its name, leading to an array size mismatch crash. -->
+  <link name="fer_leftfinger_dummy"/>
+  <joint name="finger_joint1" type="prismatic">
+    <parent link="fer_link7"/>
+    <child link="fer_leftfinger_dummy"/>
+    <origin xyz="0 0 0.1654" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0.0" upper="0.04" effort="100" velocity="0.2"/>
+  </joint>
+
   <!-- ros2_control definition -->
   <ros2_control name="FrankaSystem" type="system">
     <hardware>
