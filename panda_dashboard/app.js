@@ -3,7 +3,7 @@
 // No backend of its own; see run_dashboard.py for the static file server.
 
 const ARM_JOINTS = ["fer_joint1", "fer_joint2", "fer_joint3", "fer_joint4", "fer_joint5", "fer_joint6", "fer_joint7"];
-const MONITOR_JOINTS = [...ARM_JOINTS, "finger_joint1"];
+const MONITOR_JOINTS = [...ARM_JOINTS, "finger_joint1", "finger_joint2"];
 
 // franka_description's robots/fer/joint_limits.yaml position limits (rad).
 const JOINT_LIMITS = {
@@ -362,6 +362,8 @@ function toggleImpedance() {
 
 function impedanceLoop() {
   if (!effortTopic || !latestJointPositions || !latestJointVelocities) return;
+  if (latestJointPositions.some(p => p === null || Number.isNaN(p))) return;
+  if (latestJointVelocities.some(v => v === null || Number.isNaN(v))) return;
   const target = getSliderValues();
   const K_base = Number($("impedanceK").value);
   const D_base = Number($("impedanceD").value);
