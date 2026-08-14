@@ -316,6 +316,12 @@ function impedanceLoop() {
     return K_gains[i] * err - D_gains[i] * latestJointVelocities[i];
   });
   
+  if (torques.some(t => t === null || Number.isNaN(t) || !isFinite(t))) {
+    log("Refusing to send invalid or NaN torque commands", "err");
+    stopImpedance();
+    return;
+  }
+  
   effortTopic.publish(
     new ROSLIB.Message({ layout: { dim: [], data_offset: 0 }, data: torques })
   );
