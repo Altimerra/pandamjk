@@ -3,10 +3,11 @@
 #
 # Usage:
 #   ./run.sh                          # simulation, no teleop
+#   ./run.sh --colcon-build           # run colcon build inside container before launch
 #   ./run.sh --teleop                 # simulation + joystick Cartesian teleop
 #   ./run.sh --visual-teleop          # simulation + RViz interactive-marker teleop
 #   ./run.sh --real --robot-ip 172.16.0.2   # real Panda hardware
-#   ./run.sh --build                  # rebuild the image first
+#   ./run.sh --build                  # rebuild the docker image first
 #
 # Also starts the web dashboard (panda_dashboard/) on the host. Ctrl+C
 # stops the foreground launch, then the container and the dashboard
@@ -16,6 +17,7 @@ set -e
 USE_SIM=true
 ROBOT_IP="192.168.1.100"
 BUILD_FLAG=""
+DO_COLCON_BUILD=false
 TELEOP=""
 
 while [[ $# -gt 0 ]]; do
@@ -23,6 +25,7 @@ while [[ $# -gt 0 ]]; do
     --real) USE_SIM=false; shift ;;
     --robot-ip) ROBOT_IP="$2"; shift 2 ;;
     --build) BUILD_FLAG="--build"; shift ;;
+    --colcon-build|--colcon|-c) DO_COLCON_BUILD=true; shift ;;
     --teleop) TELEOP="teleop"; shift ;;
     --visual-teleop) TELEOP="visual_teleop"; shift ;;
     -h|--help)
@@ -47,6 +50,11 @@ docker compose up -d $BUILD_FLAG
 
 CONTAINER="ros2_mujoco_container"
 ROS_ENV="source /opt/ros/humble/setup.bash && source /ros2_ws/install/setup.bash"
+
+if [[ "$DO_COLCON_BUILD" == "true" ]]; then
+  echo "Running colcon build in container..."
+  docker exec -it "$CONTAINER" bash -c "source /opt/ros/humble/setup.bash && cd /ros2_ws && colcon build --symlink-install"
+fi
 
 DASHBOARD_PID=""
 cleanup() {
