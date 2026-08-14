@@ -109,7 +109,8 @@
     </div>
     <div class="control-row">
       <label for="plotFieldInput">Data Field:</label>
-      <input type="text" id="plotFieldInput" placeholder="e.g. position[0] or pose.position.x" style="flex: 1; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px;">
+      <input type="text" id="plotFieldInput" list="plotFieldsDatalist" placeholder="e.g. position[0] or pose.position.x" style="flex: 1; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px;">
+      <datalist id="plotFieldsDatalist"></datalist>
     </div>
     <div class="control-row">
       <button id="startPlotBtn" class="primary">Start Plot</button>

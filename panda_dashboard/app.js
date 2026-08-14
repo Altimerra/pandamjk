@@ -359,6 +359,10 @@ function fetchTopics() {
       select.appendChild(opt);
     });
 
+    if (allTopicsList.length > 0) {
+      fetchTopicFieldsForPlot(); // Auto-fetch for the default selected topic
+    }
+
     renderTopicList();
     log(`Fetched ${allTopicsList.length} topics`, "ok");
   });
@@ -425,6 +429,58 @@ function stopMonitoringTopic() {
 
 function resolvePath(obj, path) {
   return path.split(/[\.\[\]\'\"]/).filter(p => p).reduce((o, p) => o ? o[p] : undefined, obj);
+}
+
+function extractNumberPaths(obj, prefix = '') {
+  let paths = [];
+  for (let key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      let val = obj[key];
+      let newPrefix = prefix ? `${prefix}.${key}` : key;
+      if (Array.isArray(val)) {
+        if (val.length > 0 && typeof val[0] === 'number') {
+           for (let i=0; i<val.length; i++) {
+               paths.push(`${newPrefix}[${i}]`);
+           }
+        } else if (val.length > 0 && typeof val[0] === 'object') {
+           for (let i=0; i<val.length; i++) {
+               paths = paths.concat(extractNumberPaths(val[i], `${newPrefix}[${i}]`));
+           }
+        }
+      } else if (val !== null && typeof val === 'object') {
+        paths = paths.concat(extractNumberPaths(val, newPrefix));
+      } else if (typeof val === 'number') {
+        paths.push(newPrefix);
+      }
+    }
+  }
+  return paths;
+}
+
+function fetchTopicFieldsForPlot() {
+  const select = $("plotTopicSelect");
+  if (!select.options[select.selectedIndex]) return;
+  const topicName = select.value;
+  const topicType = select.options[select.selectedIndex].dataset.type;
+  
+  const datalist = $("plotFieldsDatalist");
+  datalist.innerHTML = "";
+  $("plotFieldInput").placeholder = "Loading fields...";
+
+  const tempSub = new ROSLIB.Topic({
+    ros: ros,
+    name: topicName,
+    messageType: topicType
+  });
+
+  // Subscribe once to get the message structure
+  tempSub.subscribe((msg) => {
+    tempSub.unsubscribe();
+    const paths = extractNumberPaths(msg);
+    datalist.innerHTML = paths.map(p => `<option value="${p}">`).join("");
+    $("plotFieldInput").placeholder = paths.length > 0 ? "Select or type a field" : "No numeric fields found";
+    log(`Discovered ${paths.length} numeric fields in ${topicName}`, "ok");
+  });
 }
 
 function initUPlot() {
@@ -561,6 +617,7 @@ window.addEventListener("DOMContentLoaded", () => {
   $("refreshTopicsBtn").addEventListener("click", fetchTopics);
   $("topicSearch").addEventListener("input", renderTopicList);
   $("closeTopicViewerBtn").addEventListener("click", stopMonitoringTopic);
+  $("plotTopicSelect").addEventListener("change", fetchTopicFieldsForPlot);
   
   $("startPlotBtn").addEventListener("click", startPlotting);
   $("stopPlotBtn").addEventListener("click", stopPlotting);
