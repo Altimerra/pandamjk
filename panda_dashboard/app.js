@@ -128,10 +128,12 @@ function onJointState(msg) {
   if (now - lastDebugLogStamp > 2000) {
     let hasError = false;
     if (msg.name.length !== msg.position.length) {
-      if (msg.position.length > 0) {
+      if (msg.position.length > msg.name.length) {
+        // Known issue: mujoco_ros2_control sometimes appends an extra trailing position
+        // for unnamed joints (like the box's freejoint). We can safely slice it off.
+        msg.position = msg.position.slice(0, msg.name.length);
+      } else if (msg.position.length > 0) {
         log(`MISMATCH ERROR: name.length=${msg.name.length} != position.length=${msg.position.length}`, "err");
-        log(`name array: ${JSON.stringify(msg.name)}`, "err");
-        log(`position array: ${JSON.stringify(msg.position)}`, "err");
         hasError = true;
       }
     }

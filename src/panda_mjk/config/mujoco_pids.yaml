@@ -14,18 +14,18 @@
   ros__parameters:
     pid_gains:
       position:
-        joint1: {p: 4500.0, i: 0.0, d: 450.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
-        joint2: {p: 4500.0, i: 0.0, d: 450.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
-        joint3: {p: 3500.0, i: 0.0, d: 350.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
-        joint4: {p: 3500.0, i: 0.0, d: 350.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
-        joint5: {p: 2000.0, i: 0.0, d: 200.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
-        joint6: {p: 2000.0, i: 0.0, d: 200.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
-        joint7: {p: 2000.0, i: 0.0, d: 200.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        fer_joint1: {p: 4500.0, i: 0.0, d: 450.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        fer_joint2: {p: 4500.0, i: 0.0, d: 450.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        fer_joint3: {p: 3500.0, i: 0.0, d: 350.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        fer_joint4: {p: 3500.0, i: 0.0, d: 350.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        fer_joint5: {p: 2000.0, i: 0.0, d: 200.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        fer_joint6: {p: 2000.0, i: 0.0, d: 200.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        fer_joint7: {p: 2000.0, i: 0.0, d: 200.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
       velocity:
-        joint1: {p: 50.0, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
-        joint2: {p: 50.0, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
-        joint3: {p: 50.0, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
-        joint4: {p: 50.0, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
-        joint5: {p: 20.0, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
-        joint6: {p: 20.0, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
-        joint7: {p: 20.0, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        fer_joint1: {p: 50.0, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        fer_joint2: {p: 50.0, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        fer_joint3: {p: 50.0, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        fer_joint4: {p: 50.0, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        fer_joint5: {p: 20.0, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        fer_joint6: {p: 20.0, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}
+        fer_joint7: {p: 20.0, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: false}

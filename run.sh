@@ -53,7 +53,7 @@ ROS_ENV="source /opt/ros/humble/setup.bash && source /ros2_ws/install/setup.bash
 
 if [[ "$DO_COLCON_BUILD" == "true" ]]; then
   echo "Running colcon build in container..."
-  docker exec -it "$CONTAINER" bash -c "source /opt/ros/humble/setup.bash && cd /ros2_ws && colcon build --symlink-install"
+  docker exec "$CONTAINER" bash -c "source /opt/ros/humble/setup.bash && cd /ros2_ws && colcon build --symlink-install"
 fi
 
 DASHBOARD_PID=""
@@ -77,5 +77,5 @@ if [[ -n "$TELEOP" ]]; then
 fi
 
 echo "Starting panda_control.launch.py (use_sim:=$USE_SIM robot_ip:=$ROBOT_IP)..."
-docker exec -it "$CONTAINER" bash -c \
+docker exec "$CONTAINER" bash -c \
   "$ROS_ENV && ros2 launch panda_mjk panda_control.launch.py use_sim:=$USE_SIM robot_ip:=$ROBOT_IP"

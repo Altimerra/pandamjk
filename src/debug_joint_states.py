@@ -6,12 +6,18 @@ import math
 
 class JointStateDebugger(Node):
     def __init__(self):
-        super().__init__('joint_state_debugger')
+        super().__init__('debug_joint_states')
         self.subscription = self.create_subscription(
             JointState,
             '/joint_states',
             self.listener_callback,
             10)
+        self.timer = self.create_timer(2.0, self.timer_callback)
+
+    def timer_callback(self):
+        publishers = self.get_publishers_info_by_topic('/joint_states')
+        for pub in publishers:
+            self.get_logger().info(f"Publisher: {pub.node_name()} from node namespace {pub.node_namespace()}")
         self.subscription  # prevent unused variable warning
         self.get_logger().info('Subscribed to /joint_states. Waiting for messages...')
 
