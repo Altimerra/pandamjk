@@ -49,6 +49,15 @@
     <limit lower="0.0" upper="0.04" effort="100" velocity="0.2"/>
   </joint>
 
+  <link name="fer_rightfinger_dummy"/>
+  <joint name="finger_joint2" type="prismatic">
+    <parent link="fer_link7"/>
+    <child link="fer_rightfinger_dummy"/>
+    <origin xyz="0 0 0.1654" rpy="0 0 0"/>
+    <axis xyz="0 -1 0"/>
+    <limit lower="0.0" upper="0.04" effort="100" velocity="0.2"/>
+  </joint>
+
   <!-- ros2_control definition -->
   <ros2_control name="FrankaSystem" type="system">
     <hardware>
