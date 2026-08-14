@@ -158,6 +158,8 @@ function onJointState(msg) {
     if (msg.name.length !== msg.position.length) {
       if (msg.position.length > 0) {
         log(`MISMATCH ERROR: name.length=${msg.name.length} != position.length=${msg.position.length}`, "err");
+        log(`name array: ${JSON.stringify(msg.name)}`, "err");
+        log(`position array: ${JSON.stringify(msg.position)}`, "err");
         hasError = true;
       }
     }
