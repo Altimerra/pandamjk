@@ -83,20 +83,20 @@ def generate_launch_description():
     jsb_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["joint_state_broadcaster", "--controller-manager", "/controller_manager"],
+        arguments=["joint_state_broadcaster", "--controller-manager", "/controller_manager", "--param-file", controllers_config],
     )
 
     main_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=[controller_name, "--controller-manager", "/controller_manager"],
+        arguments=[controller_name, "--controller-manager", "/controller_manager", "--param-file", controllers_config],
     )
 
     # Gripper controller for sim only
     gripper_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["panda_gripper_controller", "--controller-manager", "/controller_manager"],
+        arguments=["panda_gripper_controller", "--controller-manager", "/controller_manager", "--param-file", controllers_config],
         condition=IfCondition(use_sim),
     )
 
