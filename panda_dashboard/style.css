@@ -78,6 +78,7 @@ button {
   padding: 6px 12px;
   cursor: pointer;
   font-size: 13px;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 button:hover { border-color: var(--accent); }
@@ -126,6 +127,15 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   color: var(--muted);
   font-size: 12px;
   margin: -6px 0 12px;
+  line-height: 1.4;
+}
+
+.hint code {
+  color: var(--accent);
+  background: var(--bg);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 11px;
 }
 
 .joint-table {
@@ -148,18 +158,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   border-bottom: 1px solid var(--border);
 }
 
-.servo-status {
-  font-size: 13px;
-  padding: 8px 10px;
-  border-radius: 4px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-}
-
-.servo-status.ok { border-color: var(--ok); color: var(--ok); }
-.servo-status.warn { border-color: var(--warn); color: var(--warn); }
-.servo-status.halt { border-color: var(--danger); color: var(--danger); }
-
 .control-row {
   display: flex;
   align-items: center;
@@ -172,45 +170,23 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .joint-row {
   display: grid;
-  grid-template-columns: 60px 1fr 70px;
+  grid-template-columns: 75px 1fr 75px;
   align-items: center;
   gap: 10px;
   margin-bottom: 8px;
   font-size: 13px;
 }
 
-.joint-row input[type="range"] {
-  width: 100%;
+.joint-row input[type="range"],
+.control-row input[type="range"] {
+  accent-color: var(--accent);
+  cursor: pointer;
 }
 
 .joint-row .val {
   text-align: right;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
-}
-
-.jog-grid {
-  display: flex;
-  gap: 24px;
-  flex-wrap: wrap;
-}
-
-.jog-group h3 {
-  font-size: 12px;
-  color: var(--muted);
-  margin: 0 0 8px;
-  font-weight: 500;
-}
-
-.jog-buttons {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 6px;
-  width: 140px;
-}
-
-.jog-buttons button {
-  user-select: none;
 }
 
 .log {
@@ -228,12 +204,13 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .log .err { color: var(--danger); }
 .log .ok { color: var(--ok); }
+.log .warn { color: var(--warn); }
 
-#logPanel, #cartesianPanel {
+#logPanel {
   grid-column: span 2;
 }
 
 @media (max-width: 900px) {
   .grid { grid-template-columns: 1fr; }
-  #logPanel, #cartesianPanel { grid-column: span 1; }
+  #logPanel { grid-column: span 1; }
 }

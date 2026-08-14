@@ -8,11 +8,11 @@
 </head>
 <body>
 <header class="topbar">
-  <h1>Panda MJK <span>Dashboard</span></h1>
+  <h1>Panda MJK <span>Joint Control</span></h1>
   <div class="connect-bar">
-    <input id="wsHost" type="text" value="localhost" spellcheck="false">
+    <input id="wsHost" type="text" value="localhost" spellcheck="false" title="WebSocket Host">
     <span>:</span>
-    <input id="wsPort" type="text" value="9090" spellcheck="false" size="5">
+    <input id="wsPort" type="text" value="9090" spellcheck="false" size="5" title="WebSocket Port">
     <button id="connectBtn">Connect</button>
     <span id="statusDot" class="status-dot disconnected"></span>
     <span id="statusText">Disconnected</span>
@@ -29,82 +29,55 @@
       </thead>
       <tbody id="jointStateBody"></tbody>
     </table>
-    <h2>Servo Status</h2>
-    <div id="servoStatus" class="servo-status">no data</div>
   </section>
 
   <section class="panel" id="jointControlPanel">
-    <h2>Joint Control</h2>
+    <h2>Joint Position Control</h2>
     <div class="control-row">
-      <label><input type="checkbox" id="liveSend"> live send while dragging</label>
+      <label><input type="checkbox" id="liveSend"> Live send while dragging</label>
       <button id="syncBtn">Sync to Current</button>
       <button id="homeBtn">Home Pose</button>
-      <button id="sendBtn" class="primary">Send</button>
+      <button id="zeroBtn">Zero Pose</button>
+      <button id="sendBtn" class="primary">Send Command</button>
     </div>
     <div id="jointSliders"></div>
   </section>
 
+  <section class="panel" id="gripperPanel">
+    <h2>Gripper Control</h2>
+    <p class="hint">Send gripper commands to <code>panda_gripper_controller</code>.</p>
+    <div class="control-row">
+      <button id="gripperOpenBtn" class="primary">Open Gripper</button>
+      <button id="gripperCloseBtn">Close Gripper</button>
+    </div>
+    <div class="control-row" style="margin-top: 12px;">
+      <label for="gripperWidthSlider">Width (m): <span id="gripperWidthVal">0.080</span></label>
+      <input type="range" id="gripperWidthSlider" min="0" max="0.08" step="0.001" value="0.08" style="width: 100%;">
+      <button id="gripperSendWidthBtn">Set Width</button>
+    </div>
+  </section>
+
   <section class="panel" id="impedancePanel">
-    <h2>Impedance Control</h2>
-    <p class="hint">Publishes torques to <code>/forward_effort_controller/commands</code> to pull the arm toward the Joint Control targets.</p>
+    <h2>Joint Impedance Control</h2>
+    <p class="hint">Streams joint torques to <code>/forward_effort_controller/commands</code> to pull joints toward slider targets.</p>
     <div class="control-row">
       <button id="impedanceToggleBtn">Start Impedance Control</button>
     </div>
     <div class="control-row">
-      <label>Stiffness (K) <input id="impedanceK" type="range" min="1" max="100" step="1" value="20"></label>
-      <span id="impedanceKVal">20</span>
+      <label for="impedanceK">Stiffness (K): <span id="impedanceKVal">20</span></label>
+      <input id="impedanceK" type="range" min="1" max="100" step="1" value="20" style="width: 100%;">
     </div>
     <div class="control-row">
-      <label>Damping (D) <input id="impedanceD" type="range" min="0.1" max="10" step="0.1" value="2.0"></label>
-      <span id="impedanceDVal">2.0</span>
-    </div>
-  </section>
-
-  <section class="panel" id="cartesianPanel">
-    <h2>Cartesian Jog</h2>
-    <p class="hint">Hold a button to jog the end effector in <code>fer_link0</code>. Releasing halts the motion.</p>
-    <div class="control-row">
-      <label>Speed <input id="jogScale" type="range" min="0.05" max="1" step="0.05" value="0.3"></label>
-      <span id="jogScaleVal">0.30</span>
-      <button id="jogStopBtn" class="danger">Stop</button>
-    </div>
-    <div class="jog-grid">
-      <div class="jog-group">
-        <h3>Translate</h3>
-        <div class="jog-buttons">
-          <button data-axis="linear" data-comp="x" data-sign="1">+X</button>
-          <button data-axis="linear" data-comp="x" data-sign="-1">-X</button>
-          <button data-axis="linear" data-comp="y" data-sign="1">+Y</button>
-          <button data-axis="linear" data-comp="y" data-sign="-1">-Y</button>
-          <button data-axis="linear" data-comp="z" data-sign="1">+Z</button>
-          <button data-axis="linear" data-comp="z" data-sign="-1">-Z</button>
-        </div>
-      </div>
-      <div class="jog-group">
-        <h3>Rotate</h3>
-        <div class="jog-buttons">
-          <button data-axis="angular" data-comp="x" data-sign="1">+Roll</button>
-          <button data-axis="angular" data-comp="x" data-sign="-1">-Roll</button>
-          <button data-axis="angular" data-comp="y" data-sign="1">+Pitch</button>
-          <button data-axis="angular" data-comp="y" data-sign="-1">-Pitch</button>
-          <button data-axis="angular" data-comp="z" data-sign="1">+Yaw</button>
-          <button data-axis="angular" data-comp="z" data-sign="-1">-Yaw</button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="panel" id="gripperPanel">
-    <h2>Gripper</h2>
-    <p class="hint">Sends a GripperCommand action goal to <code>panda_gripper_controller</code> (simulation only).</p>
-    <div class="control-row">
-      <button id="gripperOpenBtn">Open</button>
-      <button id="gripperCloseBtn">Close</button>
+      <label for="impedanceD">Damping (D): <span id="impedanceDVal">2.0</span></label>
+      <input id="impedanceD" type="range" min="0.1" max="10" step="0.1" value="2.0" style="width: 100%;">
     </div>
   </section>
 
   <section class="panel" id="logPanel">
-    <h2>Log</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <h2 style="margin: 0;">Console Log</h2>
+      <button id="clearLogBtn" style="padding: 2px 8px; font-size: 11px;">Clear</button>
+    </div>
     <div id="log" class="log"></div>
   </section>
 

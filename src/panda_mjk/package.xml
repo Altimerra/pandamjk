@@ -20,7 +20,6 @@
   <depend>franka_hardware</depend>
   <depend>franka_description</depend>
   <depend>joy</depend>
-  <depend>moveit_servo</depend>
   <depend>xacro</depend>
   <depend>control_msgs</depend>
   <depend>rclcpp_action</depend>

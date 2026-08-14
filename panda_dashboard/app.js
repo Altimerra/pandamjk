@@ -1,6 +1,5 @@
-// Panda MJK Dashboard — connects directly to the rosbridge websocket
-// (panda_control.launch.py brings this up on :9090) using roslibjs.
-// No backend of its own; see run_dashboard.py for the static file server.
+// Panda MJK Dashboard — Direct Joint & Gripper Control via rosbridge websocket
+// Connects to ws://localhost:9090 by default
 
 const ARM_JOINTS = ["fer_joint1", "fer_joint2", "fer_joint3", "fer_joint4", "fer_joint5", "fer_joint6", "fer_joint7"];
 const MONITOR_JOINTS = [...ARM_JOINTS, "finger_joint1", "finger_joint2"];
@@ -16,96 +15,75 @@ const JOINT_LIMITS = {
   fer_joint7: [-2.8973, 2.8973],
 };
 
-// Standard Franka "ready" pose, widely used as a safe home configuration.
 const HOME_POSE = [0, -0.785398, 0, -2.356194, 0, 1.570796, 0.785398];
-
-// Best-effort mapping of moveit_servo's StatusCode enum. The exact ordering
-// has shifted slightly across releases, so the raw code is always shown too.
-const SERVO_STATUS = {
-  0: ["NO_WARNING", "ok"],
-  1: ["DECELERATE_FOR_SINGULARITY", "warn"],
-  2: ["HALT_FOR_SINGULARITY", "halt"],
-  3: ["DECELERATE_FOR_COLLISION", "warn"],
-  4: ["HALT_FOR_COLLISION", "halt"],
-  5: ["DECELERATE_FOR_LEADING_SINGULARITY", "warn"],
-  6: ["JOINT_BOUND", "warn"],
-  7: ["INVALID", "halt"],
-};
+const ZERO_POSE = [0, 0, 0, 0, 0, 0, 0];
 
 let ros = null;
 let jointStateTopic = null;
-let servoStatusTopic = null;
 let commandTopic = null;
-let twistTopic = null;
 let effortTopic = null;
+let gripperAction = null;
 let latestJointPositions = null; // ordered by ARM_JOINTS
 let latestJointVelocities = null; // ordered by ARM_JOINTS
 let impedanceInterval = null;
 let lastJsStamp = 0;
 let jsRateEma = null;
-let jogInterval = null;
 let liveSendLastAt = 0;
 let lastDebugLogStamp = 0;
 
 const $ = (id) => document.getElementById(id);
 
-function log(msg, cls) {
+function log(msg, cls = "") {
   const el = $("log");
+  if (!el) return;
+  const time = new Date().toLocaleTimeString();
   const line = document.createElement("div");
   if (cls) line.className = cls;
-  const t = new Date().toLocaleTimeString();
-  line.textContent = `[${t}] ${msg}`;
+  line.textContent = `[${time}] ${msg}`;
   el.appendChild(line);
   el.scrollTop = el.scrollHeight;
 }
 
-function setStatus(state, text) {
+// ---- Connection handling -----------------------------------------------
+
+function connect() {
+  const host = $("wsHost").value.trim() || "localhost";
+  const port = $("wsPort").value.trim() || "9090";
+  const url = `ws://${host}:${port}`;
+
+  if (ros) {
+    try { ros.close(); } catch (e) {}
+  }
+
+  setConnStatus("connecting", `Connecting to ${url}...`);
+  ros = new ROSLIB.Ros({ url });
+
+  ros.on("connection", () => {
+    setConnStatus("connected", `Connected to ${url}`);
+    log(`Connected to ${url}`, "ok");
+    subscribeTopics();
+  });
+
+  ros.on("error", (err) => {
+    setConnStatus("disconnected", "Connection error");
+    log(`WebSocket error: ${JSON.stringify(err)}`, "err");
+  });
+
+  ros.on("close", () => {
+    setConnStatus("disconnected", "Disconnected");
+    log("Disconnected from rosbridge", "warn");
+    stopImpedance();
+  });
+}
+
+function setConnStatus(state, text) {
   const dot = $("statusDot");
   dot.className = `status-dot ${state}`;
   $("statusText").textContent = text;
 }
 
-// ---- Connection -----------------------------------------------------
-
-function connect() {
-  if (ros) {
-    ros.close();
-    ros = null;
-  }
-
-  const host = $("wsHost").value.trim() || "localhost";
-  const port = $("wsPort").value.trim() || "9090";
-  const url = `ws://${host}:${port}`;
-
-  setStatus("connecting", `Connecting to ${url}...`);
-  ros = new ROSLIB.Ros({ url });
-
-  ros.on("connection", () => {
-    setStatus("connected", `Connected to ${url}`);
-    log(`Connected to ${url}`, "ok");
-    $("connectBtn").textContent = "Disconnect";
-    subscribeAll();
-  });
-
-  ros.on("error", (err) => {
-    setStatus("disconnected", "Connection error");
-    log(`Connection error: ${err}`, "err");
-  });
-
-  ros.on("close", () => {
-    setStatus("disconnected", "Disconnected");
-    log("Disconnected");
-    $("connectBtn").textContent = "Connect";
-  });
-}
-
-function disconnect() {
-  if (ros) {
-    ros.close();
-  }
-}
-
-function subscribeAll() {
+function subscribeTopics() {
+  // Joint states subscriber
   jointStateTopic = new ROSLIB.Topic({
     ros,
     name: "/joint_states",
@@ -113,29 +91,25 @@ function subscribeAll() {
   });
   jointStateTopic.subscribe(onJointState);
 
-  servoStatusTopic = new ROSLIB.Topic({
-    ros,
-    name: "/servo_node/status",
-    messageType: "std_msgs/msg/Int8",
-  });
-  servoStatusTopic.subscribe(onServoStatus);
-
+  // Forward position controller command publisher
   commandTopic = new ROSLIB.Topic({
     ros,
     name: "/forward_position_controller/commands",
     messageType: "std_msgs/msg/Float64MultiArray",
   });
 
-  twistTopic = new ROSLIB.Topic({
-    ros,
-    name: "/servo_node/delta_twist_cmds",
-    messageType: "geometry_msgs/msg/TwistStamped",
-  });
-
+  // Forward effort controller command publisher (for impedance control)
   effortTopic = new ROSLIB.Topic({
     ros,
     name: "/forward_effort_controller/commands",
     messageType: "std_msgs/msg/Float64MultiArray",
+  });
+
+  // Gripper Action Client
+  gripperAction = new ROSLIB.ActionClient({
+    ros,
+    serverName: "/panda_gripper_controller/gripper_cmd",
+    actionName: "control_msgs/action/GripperCommand",
   });
 }
 
@@ -150,24 +124,18 @@ function onJointState(msg) {
   }
   lastJsStamp = now;
 
-  // Debug logic mirroring robot_state_publisher's validation
+  // Debug logic validating message structure
   if (now - lastDebugLogStamp > 2000) {
     let hasError = false;
-    
-    // Check array size mismatch
     if (msg.name.length !== msg.position.length) {
       if (msg.position.length > 0) {
         log(`MISMATCH ERROR: name.length=${msg.name.length} != position.length=${msg.position.length}`, "err");
         log(`name array: ${JSON.stringify(msg.name)}`, "err");
         log(`position array: ${JSON.stringify(msg.position)}`, "err");
-        log(`velocity array: ${JSON.stringify(msg.velocity)}`, "err");
-        log(`effort array: ${JSON.stringify(msg.effort)}`, "err");
-        log(`header frame_id: "${msg.header ? msg.header.frame_id : ''}"`, "err");
         hasError = true;
       }
     }
     
-    // Check for NaNs in position
     msg.position.forEach((pos, i) => {
       if (Number.isNaN(pos)) {
         log(`NaN ERROR: position is NaN for joint: ${msg.name[i]}`, "err");
@@ -175,26 +143,8 @@ function onJointState(msg) {
       }
     });
 
-    // Check for NaNs in velocity and effort (warnings)
-    if (msg.velocity) {
-      msg.velocity.forEach((vel, i) => {
-        if (Number.isNaN(vel)) {
-          log(`NaN WARNING: velocity is NaN for joint: ${msg.name[i]}`, "warn");
-          hasError = true;
-        }
-      });
-    }
-    if (msg.effort) {
-      msg.effort.forEach((eff, i) => {
-        if (Number.isNaN(eff)) {
-          log(`NaN WARNING: effort is NaN for joint: ${msg.name[i]}`, "warn");
-          hasError = true;
-        }
-      });
-    }
-    
     if (hasError) {
-      lastDebugLogStamp = now; // Throttle error logging to avoid flooding the DOM
+      lastDebugLogStamp = now;
     }
   }
 
@@ -209,10 +159,10 @@ function onJointState(msg) {
   });
 
   const armRows = rows.slice(0, ARM_JOINTS.length);
-  if (armRows.every((r) => r.pos !== null)) {
+  if (armRows.every((r) => r.pos !== null && !Number.isNaN(r.pos))) {
     latestJointPositions = armRows.map((r) => r.pos);
   }
-  if (armRows.every((r) => r.vel !== null)) {
+  if (armRows.every((r) => r.vel !== null && !Number.isNaN(r.vel))) {
     latestJointVelocities = armRows.map((r) => r.vel);
   }
 
@@ -225,14 +175,6 @@ function onJointState(msg) {
       return `<tr><td>${r.name}</td><td>${deg}</td><td>${rad}</td><td>${vel}</td></tr>`;
     })
     .join("");
-}
-
-function onServoStatus(msg) {
-  const code = msg.data;
-  const [label, cls] = SERVO_STATUS[code] || ["UNKNOWN", "warn"];
-  const el = $("servoStatus");
-  el.textContent = `${label} (code ${code})`;
-  el.className = `servo-status ${cls}`;
 }
 
 // ---- Joint control -----------------------------------------------------
@@ -270,93 +212,76 @@ function getSliderValues() {
 
 function setSliderValues(values) {
   ARM_JOINTS.forEach((name, i) => {
-    $(`slider-${name}`).value = values[i];
-    $(`val-${name}`).textContent = Number(values[i]).toFixed(3);
+    const val = values[i];
+    $(`slider-${name}`).value = val;
+    $(`val-${name}`).textContent = Number(val).toFixed(3);
   });
 }
 
 function sendJointCommand() {
   if (!commandTopic) {
-    log("Not connected — cannot send joint command", "err");
+    log("Not connected to rosbridge", "err");
     return;
   }
   const data = getSliderValues();
-  commandTopic.publish(
-    new ROSLIB.Message({ layout: { dim: [], data_offset: 0 }, data })
-  );
-  log(`Sent joint command: [${data.map((v) => v.toFixed(3)).join(", ")}]`);
+  const msg = new ROSLIB.Message({
+    layout: { dim: [], data_offset: 0 },
+    data,
+  });
+  commandTopic.publish(msg);
+  log(`Sent joint command: [${data.map((x) => x.toFixed(3)).join(", ")}]`, "ok");
 }
 
 function syncToCurrent() {
   if (!latestJointPositions) {
-    log("No joint state received yet", "err");
+    log("No joint state received yet to sync from", "warn");
     return;
   }
   setSliderValues(latestJointPositions);
+  log("Synced sliders to current joint positions", "ok");
 }
 
-function goHome() {
+function setHomePose() {
   setSliderValues(HOME_POSE);
-  sendJointCommand();
+  log("Loaded HOME pose into sliders", "ok");
 }
 
-// ---- Cartesian jog -------------------------------------------------------
-
-function publishTwist(linear, angular) {
-  if (!twistTopic) return;
-  twistTopic.publish(
-    new ROSLIB.Message({
-      header: { stamp: { sec: 0, nanosec: 0 }, frame_id: "fer_link0" },
-      twist: { linear, angular },
-    })
-  );
+function setZeroPose() {
+  setSliderValues(ZERO_POSE);
+  log("Loaded ZERO pose into sliders", "ok");
 }
 
-function zeroTwist() {
-  publishTwist({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
-}
-
-function startJog(axis, comp, sign) {
-  if (!twistTopic) {
-    log("Not connected — cannot jog", "err");
-    return;
-  }
-  stopJog();
-  const scale = Number($("jogScale").value) * sign;
-  const linear = { x: 0, y: 0, z: 0 };
-  const angular = { x: 0, y: 0, z: 0 };
-  const send = () => {
-    if (axis === "linear") linear[comp] = scale;
-    else angular[comp] = scale;
-    publishTwist(linear, angular);
-  };
-  send();
-  jogInterval = setInterval(send, 50); // 20 Hz, well under servo's 100ms timeout
-}
-
-function stopJog() {
-  if (jogInterval) {
-    clearInterval(jogInterval);
-    jogInterval = null;
-    zeroTwist();
-  }
-}
-
-// ---- Impedance Control ---------------------------------------------------
+// ---- Joint Impedance Control -------------------------------------------
 
 function toggleImpedance() {
+  if (impedanceInterval) {
+    stopImpedance();
+  } else {
+    startImpedance();
+  }
+}
+
+function startImpedance() {
+  if (!effortTopic) {
+    log("Not connected to rosbridge", "err");
+    return;
+  }
+  impedanceInterval = setInterval(impedanceLoop, 20); // 50 Hz
+  $("impedanceToggleBtn").textContent = "Stop Impedance Control";
+  $("impedanceToggleBtn").className = "danger";
+  log("Started joint impedance control loop (50 Hz)", "ok");
+}
+
+function stopImpedance() {
   if (impedanceInterval) {
     clearInterval(impedanceInterval);
     impedanceInterval = null;
     $("impedanceToggleBtn").textContent = "Start Impedance Control";
-    log("Impedance control stopped.");
+    $("impedanceToggleBtn").className = "";
+    log("Stopped joint impedance control", "warn");
     if (effortTopic) {
       effortTopic.publish(new ROSLIB.Message({ layout: { dim: [], data_offset: 0 }, data: [0, 0, 0, 0, 0, 0, 0] }));
     }
-  } else {
-    $("impedanceToggleBtn").textContent = "Stop Impedance Control";
-    log("Impedance control started.");
-    impedanceInterval = setInterval(impedanceLoop, 20); // 50 Hz
   }
 }
 
@@ -364,11 +289,12 @@ function impedanceLoop() {
   if (!effortTopic || !latestJointPositions || !latestJointVelocities) return;
   if (latestJointPositions.some(p => p === null || Number.isNaN(p))) return;
   if (latestJointVelocities.some(v => v === null || Number.isNaN(v))) return;
+
   const target = getSliderValues();
   const K_base = Number($("impedanceK").value);
   const D_base = Number($("impedanceD").value);
   
-  // Lower gains for smaller joints
+  // Gain scaling for wrist/smaller joints
   const K_gains = [K_base, K_base, K_base, K_base, K_base / 2, K_base / 4, K_base / 10];
   const D_gains = [D_base, D_base, D_base, D_base, D_base / 2, D_base / 4, D_base / 10];
   
@@ -382,71 +308,71 @@ function impedanceLoop() {
   );
 }
 
-// ---- Gripper (best-effort, sim only) -------------------------------------
+// ---- Gripper Control ---------------------------------------------------
 
-function sendGripperCommand(position, maxEffort) {
-  if (!ros) {
-    log("Not connected — cannot command gripper", "err");
+function sendGripperCommand(position, maxEffort = 40.0) {
+  if (!gripperAction) {
+    log("Not connected to rosbridge", "err");
     return;
   }
-  const client = new ROSLIB.ActionClient({
-    ros,
-    serverName: "/panda_gripper_controller/gripper_cmd",
-    actionName: "control_msgs/action/GripperCommand",
-  });
   const goal = new ROSLIB.Goal({
-    actionClient: client,
-    goalMessage: { command: { position, max_effort: maxEffort } },
+    actionClient: gripperAction,
+    goalMessage: {
+      command: {
+        position: position,
+        max_effort: maxEffort,
+      },
+    },
   });
-  goal.on("result", (result) => log(`Gripper goal result: ${JSON.stringify(result)}`));
-  goal.on("timeout", () => log("Gripper goal timed out", "err"));
   goal.send();
-  log(`Sent gripper goal: position=${position}, max_effort=${maxEffort}`);
+  log(`Sent gripper goal: position=${position.toFixed(3)}m, max_effort=${maxEffort}N`, "ok");
 }
 
-// ---- Wiring ---------------------------------------------------------------
+// ---- DOM Wireup --------------------------------------------------------
 
-function init() {
+window.addEventListener("DOMContentLoaded", () => {
   buildSliders();
+  setSliderValues(HOME_POSE);
 
-  $("connectBtn").addEventListener("click", () => {
-    if (ros && ros.isConnected) disconnect();
-    else connect();
-  });
-
-  $("syncBtn").addEventListener("click", syncToCurrent);
-  $("homeBtn").addEventListener("click", goHome);
+  $("connectBtn").addEventListener("click", connect);
   $("sendBtn").addEventListener("click", sendJointCommand);
-
-  $("jogScale").addEventListener("input", () => {
-    $("jogScaleVal").textContent = Number($("jogScale").value).toFixed(2);
-  });
-  $("jogStopBtn").addEventListener("click", stopJog);
-
-  document.querySelectorAll(".jog-buttons button").forEach((btn) => {
-    const axis = btn.dataset.axis;
-    const comp = btn.dataset.comp;
-    const sign = Number(btn.dataset.sign);
-    btn.addEventListener("pointerdown", () => startJog(axis, comp, sign));
-    btn.addEventListener("pointerup", stopJog);
-    btn.addEventListener("pointerleave", stopJog);
-    btn.addEventListener("pointercancel", stopJog);
-  });
-
-  $("gripperOpenBtn").addEventListener("click", () => sendGripperCommand(0.04, 20));
-  $("gripperCloseBtn").addEventListener("click", () => sendGripperCommand(0.0, 40));
+  $("syncBtn").addEventListener("click", syncToCurrent);
+  $("homeBtn").addEventListener("click", setHomePose);
+  $("zeroBtn").addEventListener("click", setZeroPose);
 
   $("impedanceToggleBtn").addEventListener("click", toggleImpedance);
   $("impedanceK").addEventListener("input", () => {
-    $("impedanceKVal").textContent = Number($("impedanceK").value).toFixed(0);
+    $("impedanceKVal").textContent = $("impedanceK").value;
   });
   $("impedanceD").addEventListener("input", () => {
     $("impedanceDVal").textContent = Number($("impedanceD").value).toFixed(1);
   });
 
-  window.addEventListener("beforeunload", () => {
-    if (ros) ros.close();
+  $("gripperOpenBtn").addEventListener("click", () => {
+    $("gripperWidthSlider").value = "0.08";
+    $("gripperWidthVal").textContent = "0.080";
+    sendGripperCommand(0.08);
   });
-}
 
-init();
+  $("gripperCloseBtn").addEventListener("click", () => {
+    $("gripperWidthSlider").value = "0.0";
+    $("gripperWidthVal").textContent = "0.000";
+    sendGripperCommand(0.0);
+  });
+
+  $("gripperWidthSlider").addEventListener("input", () => {
+    $("gripperWidthVal").textContent = Number($("gripperWidthSlider").value).toFixed(3);
+  });
+
+  $("gripperSendWidthBtn").addEventListener("click", () => {
+    const w = Number($("gripperWidthSlider").value);
+    sendGripperCommand(w);
+  });
+
+  $("clearLogBtn").addEventListener("click", () => {
+    $("log").innerHTML = "";
+  });
+
+  // Auto-connect on load
+  connect();
+});
