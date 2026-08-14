@@ -53,8 +53,6 @@ joint_state_broadcaster:
     use_urdf_to_filter: true
     interfaces:
       - position
-      - velocity
-      - effort
 
 forward_position_controller:
   ros__parameters:
