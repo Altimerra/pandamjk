@@ -15,6 +15,8 @@
 #include "rclcpp_lifecycle/state.hpp"
 
 #include "mujoco_ros2_control/mujoco_system_interface.hpp"
+#include "franka/robot_state.h"
+#include "panda_mjk_hardware/mujoco_franka_model.hpp"
 
 namespace panda_mjk_hardware {
 
@@ -35,12 +37,12 @@ public:
       const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
 private:
-  // Dummy buffers for Franka specific GPIOs
+  // ---- Cartesian pose / velocity interfaces ----
   std::array<double, 16> cartesian_pose_state_{};
   std::array<double, 16> cartesian_pose_command_{};
-
   std::array<double, 6> cartesian_velocity_command_{};
 
+  // ---- Dynamics buffers (computed from MuJoCo, also cached in mujoco_model_) ----
   std::array<double, 49> mass_matrix_{};
   std::array<double, 7> coriolis_{};
   std::array<double, 7> gravity_{};
@@ -48,19 +50,28 @@ private:
 
   double robot_time_{0.0};
 
-  // F/T sensor data
+  // ---- F/T sensor data ----
   std::array<double, 6> ft_sensor_state_{};
 
-  // Dummy pointers for franka_semantic_components bit_cast. franka_semantic_components::
-  // FrankaRobotModel reinterprets these as live franka_hardware::Model* / franka::RobotState*
-  // and calls real methods on them (e.g. robot_model_->mass(*robot_state_)) -- there is no
-  // sim-side object we can point them at without a real libfranka model, so they stay null.
-  // Nothing in this package's controllers.yaml uses FrankaRobotModel: joint_impedance/
-  // move_to_start work off plain position+velocity state and effort commands, and
-  // gravity_compensation uses the F/T sensor GPIO below, not this. A controller that does
-  // need it (e.g. model_example_controller) would segfault dereferencing these; don't spawn one.
-  double dummy_robot_model_ptr_{0.0};
-  double dummy_robot_state_ptr_{0.0};
+  // ---- Simulation-side FrankaRobotModel support ----
+  // MujocoFrankaModel subclasses franka_hardware::Model and overrides the
+  // virtual methods to return MuJoCo-computed dynamics.  Controllers that use
+  // FrankaRobotModel (e.g. model_example_controller) will invoke these
+  // overrides via C++ virtual dispatch.
+  MujocoFrankaModel mujoco_model_;
+  franka_hardware::Model* mujoco_model_ptr_{&mujoco_model_};
+
+  // Simulation-side RobotState populated each read() cycle with joint data
+  // from MuJoCo.  FrankaRobotModel bit_casts the state interface value to
+  // franka::RobotState* and passes it to Model::mass(*robot_state_) etc.
+  franka::RobotState sim_robot_state_{};
+  franka::RobotState* sim_robot_state_ptr_{&sim_robot_state_};
+
+  // ---- Elbow interfaces ----
+  // elbow[0] = joint 3 position (rad), elbow[1] = joint 4 flip sign (+1/-1)
+  static constexpr double kElbowFlipThreshold = -0.467002423653011;
+  std::array<double, 2> elbow_state_{0.0, 1.0};
+  std::array<double, 2> elbow_command_{0.0, 1.0};
 
   // mjModel/mjData are heavy owned copies handed back by get_model()/get_data() -- cache them
   // across calls instead of re-allocating (and leaking, since MujocoSystemInterface never frees

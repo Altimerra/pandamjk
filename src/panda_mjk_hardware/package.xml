@@ -14,6 +14,7 @@
   <depend>mujoco_ros2_control</depend>
   <depend>pluginlib</depend>
   <depend>franka_semantic_components</depend>
+  <depend>franka_hardware</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

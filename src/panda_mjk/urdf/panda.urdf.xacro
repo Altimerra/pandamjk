@@ -115,5 +115,15 @@
     <gpio name="fervx">
       <command_interface name="cartesian_velocity" />
     </gpio>
+
+    <!-- Elbow interfaces for nullspace control (Cartesian + elbow controllers) -->
+    <gpio name="joint_3_position">
+      <state_interface name="elbow_state" />
+      <command_interface name="elbow_command" />
+    </gpio>
+    <gpio name="joint_4_sign">
+      <state_interface name="elbow_state" />
+      <command_interface name="elbow_command" />
+    </gpio>
   </ros2_control>
 </robot>

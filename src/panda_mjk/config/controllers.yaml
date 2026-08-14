@@ -36,6 +36,18 @@ controller_manager:
     joint_velocity_example_controller:
       type: franka_example_controllers/JointVelocityExampleController
 
+    model_example_controller:
+      type: franka_example_controllers/ModelExampleController
+
+    joint_impedance_with_ik_example_controller:
+      type: franka_example_controllers/JointImpedanceWithIKExampleController
+
+    cartesian_elbow_example_controller:
+      type: franka_example_controllers/CartesianElbowExampleController
+
+    elbow_example_controller:
+      type: franka_example_controllers/ElbowExampleController
+
 forward_position_controller:
   ros__parameters:
     joints:
@@ -161,3 +173,40 @@ joint_velocity_example_controller:
   ros__parameters:
     arm_prefix: ""
     gazebo: true
+
+model_example_controller:
+  ros__parameters:
+    robot_type: fer
+    arm_prefix: ""
+
+joint_impedance_with_ik_example_controller:
+  ros__parameters:
+    robot_type: fer
+    arm_prefix: ""
+    load_gripper: false
+    k_gains:
+      - 24.0
+      - 24.0
+      - 24.0
+      - 24.0
+      - 10.0
+      - 6.0
+      - 2.0
+    d_gains:
+      - 2.0
+      - 2.0
+      - 2.0
+      - 1.0
+      - 1.0
+      - 1.0
+      - 0.5
+
+cartesian_elbow_example_controller:
+  ros__parameters:
+    robot_type: fer
+    arm_prefix: ""
+
+elbow_example_controller:
+  ros__parameters:
+    robot_type: fer
+    arm_prefix: ""

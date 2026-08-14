@@ -32,9 +32,9 @@ install(
   DIRECTORY launch config urdf scripts
   DESTINATION share/${PROJECT_NAME}
 )
-install(PROGRAMS 
+install(PROGRAMS
   scripts/collision_behavior_shim.py
-  scripts/gripper_action_shim.py
+  scripts/gripper_sim_shim.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

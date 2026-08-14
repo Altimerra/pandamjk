@@ -12,7 +12,7 @@ find_package(hardware_interface REQUIRED)
 find_package(mujoco_ros2_control REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(franka_semantic_components REQUIRED)
-# We don't directly depend on franka_hardware unless we use their exact headers, but we do need the semantic components to mimic their layout.
+find_package(franka_hardware REQUIRED)
 
 add_library(panda_mjk_hardware SHARED
   src/mujoco_franka_system_interface.cpp
@@ -32,6 +32,7 @@ ament_target_dependencies(
   mujoco_ros2_control
   pluginlib
   franka_semantic_components
+  franka_hardware
 )
 
 pluginlib_export_plugin_description_file(hardware_interface panda_mjk_hardware_plugins.xml)
