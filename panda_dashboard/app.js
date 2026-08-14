@@ -199,7 +199,7 @@ function buildSliders() {
       $(`val-${name}`).textContent = Number(slider.value).toFixed(3);
       if ($("liveSend").checked) {
         const now = performance.now();
-        if (now - liveSendLastAt > 100) {
+        if (now - liveSendLastAt > 20) {
           liveSendLastAt = now;
           sendJointCommand();
         }
