@@ -20,6 +20,17 @@ def listener_callback(msg):
         print("\n*** 🚨 FOUND MESSAGE WITH 10 POSITIONS! 🚨 ***")
         print(f"Names: {names}")
         print(f"Positions: {positions}")
+        
+        # Call rosapi to find out exactly who is publishing to this topic!
+        try:
+            service = roslibpy.Service(client, '/rosapi/publishers', 'rosapi/Publishers')
+            request = roslibpy.ServiceRequest({'topic': '/joint_states'})
+            result = service.call(request)
+            print("\n🔍 Nodes currently publishing to /joint_states:")
+            for pub in result.get('publishers', []):
+                print(f"   - {pub}")
+        except Exception as e:
+            print(f"Could not get publisher list from rosapi: {e}")
 
 print("Connecting to ROS bridge on ws://localhost:9090...")
 client = roslibpy.Ros(host='localhost', port=9090)
